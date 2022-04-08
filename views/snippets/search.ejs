@@ -1,0 +1,146 @@
+<style>
+    .search_dropdown {
+        position: absolute;
+        width: 100% !important;
+        top: 10px;
+        box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+    }
+
+    .scrollable-menu {
+        height: auto;
+        max-height: 300px;
+        overflow-x: hidden;
+    }
+</style>
+<script>
+    function hide_search_dropdown(target) {
+        let search_dropdown = target == null ? $(".search_dropdown") : $(target).parents(".search-form").find(".search_dropdown");
+        if (search_dropdown.hasClass("show")) {
+            search_dropdown.removeClass("show");
+        }
+    }
+
+    function show_search_dropdown(search_bar) {
+        let search_bar_jquery = $(search_bar);
+        let search_dropdown = search_bar_jquery.parents(".search-form").find(".search_dropdown");
+        if (search_bar_jquery.val().length != 0) {
+            if (!search_dropdown.hasClass("show")) {
+                search_dropdown.addClass("show");
+            }
+        }
+    }
+    async function movie_select(target, search_id, search_type, callback) {//might need to change fetch URL
+        let $target = $(target);
+        hide_search_dropdown(target);
+        if(callback != null){
+            window[callback](search_id, search_type);
+        }
+    }
+
+    async function search(query, target, search_url, search_type) {//might need to change fetch URL
+
+        //Checks to see if query isn't an empty string, also checks to see if the search_url exists
+        if (query.length == 0 || search_url == null || search_url.length == 0) {
+            return;
+        }
+
+        // if the search url does not contain a forward slash at the end of the string, then add one
+        if (search_url.substr(-1) !== '/') {
+            search_url += "/";
+        }
+
+        const response = await fetch(`${search_url}${query}`);
+        let dropdown = target.parent().find(".search_dropdown");
+        let callback_function_name = target.attr("search-callback");
+        try {
+            const searches = await response.json(); //extract JSON from the http response
+            console.log();
+            if (searches.length == 0) {
+                hide_search_dropdown();
+            }
+
+            dropdown.empty();
+            for (let i = 0; i < searches.length; i++) {
+                let search = searches[i];
+
+                let search_id = DOMPurify.sanitize(search.id);
+                let title = "";
+                let type = "";
+                let poster_path = "/img/blank_movie_poster.png";
+                
+                if(search_type == "api"){
+                    if (search.media_type == "movie") {
+                        title = DOMPurify.sanitize(search.title);
+                        type = "movie";
+                    }
+                    else if (search.media_type == "tv") {
+                        title = DOMPurify.sanitize(search.name);
+                        type = "show";
+                    }
+                    if (search.poster_path != null) {
+                        poster_path = `https://www.themoviedb.org/t/p/original${DOMPurify.sanitize(search.poster_path)}`;
+                    }
+                }
+                else if(search_type == "remote"){
+                    title = DOMPurify.sanitize(search.title);
+                    type = DOMPurify.sanitize(search.type);
+                    poster_path = `/images/${DOMPurify.sanitize(search.frontpage)}`;
+                }
+                else{
+                    console.log("Search type required!");
+                }
+
+                let searchElement = `<a class="dropdown-item" onclick="movie_select(this, '${search_id}', '${type}', '${callback_function_name}')" style="cursor:pointer"><img style="height: 150px;" class="" src="${poster_path}"> ${title}</a>`;
+
+                dropdown.append(searchElement);
+            }
+        } catch (err) {
+            console.log(err);
+        }
+    }
+    $(document).ready(() => {
+        //If the user clicks anywhere on the screen other then the search dropdown, hide the search dropdown
+        $(document).on('click', function (event) {
+            if (!$(event.target).closest('.search_dropdown').length && !$(event.target).closest('.search-form .search-input').length) {
+                hide_search_dropdown();
+            }
+        });
+        var search_timer;
+        $('.search-form .search-input').on('input', function (e) {
+            let $this = $(this);
+            if ($this.val().length != 0) {
+                clearTimeout(search_timer);
+                var ms = 200; // milliseconds
+                search_timer = setTimeout(function() {
+                    search($this.val(), $this, $this.attr("search-url"), $this.attr("search-type"));
+                    show_search_dropdown($this);
+                }, ms);
+            }
+        });
+
+        $('.search-form .search-input').on('click', function (e) {
+            let $this = $(this);
+            show_search_dropdown(this);
+        });
+    });
+
+</script>
+<%#  
+    <!-- Must add search-form class -->
+    <div class="form-floating mb-3 search-form">
+        
+        <!-- 
+            add 'search-input' class, 
+            'search-callback' attribute function name, callback(search_id, search_type)
+            'search-url' attribute
+            'search-type' attribute, can be either api or remote, api meaning get from TMDB and remote means from the Movie Buddy Database
+         -->
+        <input type="text" class="form-control search-input" placeholder="Search" search-callback="display_movie_info" search-url="/api/movie/search/" search-type="api"> 
+        <label for="floating_search">Search</label>
+
+        <!-- Dropdown section is a must, everything here must be included --> 
+        <div class="dropdown">
+            <div class="search_dropdown dropdown-menu scrollable-menu"></div>
+        </div>
+    </div>
+%>

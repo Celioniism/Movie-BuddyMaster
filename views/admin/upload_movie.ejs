@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <%- include ("../snippets/header") %>
+</head>
+<script>
+    async function display_movie_info(search_id, search_type){
+        const response = await fetch(`/api/movie/${search_id}`);
+
+        //this movie is from the movie database
+        let movie = null;
+        try {
+            movie = await response.json(); //extract JSON from the http response
+
+        } catch (err) {
+            console.log(err);
+        }
+
+        if(movie == null){
+            return;
+        }
+
+        let id = movie.id;
+
+        let poster_path = "/img/blank_movie_poster.png";
+        if (movie.frontpage != null) {
+            poster_path = `https://www.themoviedb.org/t/p/original${movie.frontpage}`;
+        }
+
+        let backdrop_path = "/img/blank_movie_backdrop.png";
+        if (movie.backdrop != null) {
+            backdrop_path = `https://www.themoviedb.org/t/p/original${movie.backdrop}`;
+        }
+
+        let title_field = $("#floating_title");
+        let description_field = $("#floating_overview");
+        // let genres_field = $("#floating_genres");
+        let ratings_field = $("#floating_ratings");
+        let poster_field = $("#poster_button img");
+        let backdrop_field = $("#backdrop_button img");
+        // let logo_field = $("#logo_button img");
+
+        title_field.val(movie.title);
+        description_field.val(movie.description);
+        // genres_field.val(movie.genres);
+        ratings_field.val(movie.rating);
+
+        poster_field.attr("src", poster_path);
+        backdrop_field.attr("src", backdrop_path);
+        // logo_field.attr("src", logo_path);
+
+        selected_movie_detail = movie;
+
+        $(".search-form input").val("");
+    }
+
+    function mp4_file_selected(files){//[{file_id, file_name}]
+        if(files){
+            let file = files[0];
+            selected_mp4 = file.file_id;
+            $("#select-mp4-label").val(file.file_name);
+        }
+    }
+
+    function subtitle_file_selected(files){//[{file_id, file_name}]
+        if(files){
+            for(let file of files){
+                let id = file.file_id;
+                let name = file.file_name;
+                if($(`#subtitle_${id}`).length > 0){
+                    continue;
+                }
+                let row = 
+                `   <tr id="subtitle_${id}" file-id="${id}">
+                        <td class="align-middle">${name}</td>
+                        <td class="align-middle">
+                            <div class="form-floating">
+                                <input type="email" class="form-control" id="floating_language_name_${id}" placeholder="Language Name">
+                                <label for="floating_language_name_${id}">Language Name</label>
+                            </div>
+                        </td>
+                        <td class="align-middle">
+                            <div class="form-floating">
+                                <input type="email" class="form-control" id="floating_language_code_${id}" placeholder="Language Code">
+                                <label for="floating_language_code_${id}">Language Code</label>
+                            </div>
+                        </td>
+                        <td class="align-middle">
+                            <button type="button" class="btn btn-custom d-block mx-auto" onclick="$(this).parents('#subtitle_${id}').remove()">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>`;
+                    
+                $(row).appendTo("#subtitle_table").hide().fadeIn(500);
+            }
+        }
+    }
+</script>
+
+<body>
+    <%- include ("../snippets/navbar") %>
+        <div class="container">
+            <h1 class="display-1 py-5">Movie Upload</h1>
+
+            <!-- File Uploading -->
+            <div class="mb-2">
+                <h3 class="m-0">Select the files to be uploaded</h3>
+                <div class="text-muted"> (files supported: mp4, vtt, ssa)</div>
+            </div>
+            <form class="input-group custom-file-upload input-group-lg" progress-id="#upload_progress" upload-failed-modal="#upload-failed">
+                <input type="text" class="form-control file-upload-field" placeholder="No file selected" readonly disabled>
+                <label for="file-upload-input" class="btn btn-custom selected_files_label">
+                    Select files
+                </label>
+                <button class="btn btn-custom" type="submit">Upload</button>
+                <input id="file-upload-input" name="movie_uploads" type="file" multiple />
+            </form>
+            <div class="progress my-1 d-none">
+                <div id="upload_progress" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%">0%</div>
+            </div>
+
+            <hr>
+
+            <!-- Search Section -->
+            <h3>Search for movie details</h3>
+            <div class="form-floating mb-3 search-form">
+                <input type="text" class="form-control search-input" placeholder="Search" search-callback="display_movie_info" search-url="/api/movie/search/" search-type="api">
+                <label for="floating_search">Search</label>
+                <div class="dropdown">
+                    <div class="search_dropdown dropdown-menu scrollable-menu"></div>
+                </div>
+            </div>
+            <div class="row">
+                <!-- Movie Posters Section -->
+                <div class="col-sm-3 col-md-3 col-lg-3 col-xl-3 mb-2">
+                    <div class="mb-2">
+                        <h3 class="">Poster Image</h3>
+                        <a class="btn shadow-none px-0 mx-0 image-button p-0" role="button" id="poster_button">
+                            <div class="poster-container">
+                                <div class="img-container">
+                                    <img id="poster_image" class="w-100" src="/img/blank_movie_poster.png" />
+                                </div>
+                                <div class="colored-background"></div>
+                                <div class="border-glow"></div>
+                                <div class="overlay-components">
+                                    <i class="bi bi-download centered fs-1" style="color:white"></i>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="mb-2">
+                        <h3 class="">Backdrop Image</h3>
+                        <a class="btn shadow-none px-0 mx-0 image-button" role="button" id="backdrop_button">
+                            <div class="poster-container">
+                                <div class="img-container">
+                                    <img id="backdrop_image" class="w-100" src="/img/blank_movie_backdrop.png" />
+                                </div>
+                                <div class="colored-background"></div>
+                                <div class="border-glow"></div>
+                                <div class="overlay-components">
+                                    <i class="bi bi-download centered fs-1" style="color:white"></i>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="mb-2">
+                        <h3 class="">Logo Image</h3>
+                        <a class="btn shadow-none px-0 mx-0 image-button" role="button" id="logo_button">
+                            <div class="poster-container">
+                                <div class="img-container">
+                                    <img id="logo_image" class="w-100" src="/img/blank_movie_backdrop.png" />
+                                </div>
+                                <div class="colored-background"></div>
+                                <div class="border-glow"></div>
+                                <div class="overlay-components">
+                                    <i class="bi bi-download centered fs-1" style="color:white"></i>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+                <!-- Movie Details Section -->
+                <div class="col-sm-9 col-md-9 col-lg-9 col-xl-9">
+                    <h3 class="">Movie Details</h3>
+                    <div class="form-floating mb-2">
+                        <input type="text" class="form-control" id="floating_title" placeholder="Title">
+                        <label for="floating_title">Title</label>
+                    </div>
+                    <div class="form-floating mb-2">
+                        <textarea class="form-control" id="floating_overview" placeholder="Overview" style="height: 100px"></textarea>
+                        <label for="floating_overview">Overview</label>
+                    </div>
+                    <!-- <div class="form-floating mb-2">
+                        <input type="text" class="form-control" id="floating_genres" placeholder="Genres">
+                        <label for="floating_genres">Genres</label>
+                    </div> -->
+                    <div class="form-floating mb-2">
+                        <input type="text" class="form-control" id="floating_ratings" placeholder="Ratings">
+                        <label for="floating_ratings">Rating</label>
+                    </div>
+                    
+                    <!-- MP4 Selector -->
+                    <div class="remote-file-selector" modal-target="#file-selector-modal" file-selected-callback="mp4_file_selected" select-type="single" valid-extensions="mp4, png">
+                        <h4>Select MP4 File</h4>
+                        <div class="input-group mb-3 input-group-lg">
+                            <input type="text" class="form-control file-input-label" placeholder="Select File" aria-label="Selected File" aria-describedby="selected-file" id="select-mp4-label" readonly>
+                            <button class="btn btn-custom select-button" type="button">Select</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Subtitle Selector -->
+                    <div class="remote-file-selector" modal-target="#file-selector-modal" file-selected-callback="subtitle_file_selected" select-type="multi" valid-extensions="vtt, ssa, ass">
+                        <h4 class="d-inline align-middle">Select Subtitle File</h4>
+                        <button class="btn btn-custom select-button mx-3" type="button">Select</button>
+                        <table class="table mt-2" id="subtitle_table">
+                            <thead>
+                                <tr>
+                                    <th>File Name</th>
+                                    <th>Language Name</th>
+                                    <th>Language Code</th>
+                                    <th>Options</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+                    <button id="final_submit" class="btn btn-success">Submit</button>
+                </div>
+            </div>
+        </div>
+</body>
+
+<!-- File Selector Modal -->
+<div class="modal modal-custom fade remote-file-selector" id="file-selector-modal" tabindex="-1" aria-labelledby="file-selector-modal-title" aria-hidden="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="file-selector-modal-title">Select a file</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-custom file-selector-select" data-bs-dismiss="modal">Select</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Upload failed modal -->
+<div class="modal modal-custom fade" id="upload-failed" tabindex="-1" aria-labelledby="upload-failed-modal-title" aria-hidden="false" style="color: black">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="upload-failed-modal-title"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- include("../snippets/remote_select") %>
+<%- include("../snippets/file_uploader") %>
+<script>
+    var selected_mp4;
+    var selected_movie_detail;//the json file from the search query
+
+    function clearValues(){
+        selected_mp4 = null;
+        selected_movie_detail = null;
+
+        $("#floating_title").val("");
+        $("#floating_overview").val("");
+        $("#floating_ratings").val("");
+        $("#poster_image").attr("src", "/img/blank_movie_poster.png");
+        $("#backdrop_image").attr("src", "/img/blank_movie_backdrop.png");
+        $("#logo_image").attr("src", "/img/blank_movie_backdrop.png");
+        $("#select-mp4-label").val("");
+        $("#subtitle_table tbody").html("");
+    }
+
+    $("#final_submit").click((event) => {
+        if(selected_movie_detail == null){
+            console.log("A movie must be selected");
+            return;
+        }
+        if(selected_mp4 == null){
+            console.log("A file must be selected");
+            return;
+        }
+        //Check for empty fields
+
+        let submit_button = $(event.target);
+        submit_button.prop("disabled", true);
+        submit_button.html(`<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...`);
+
+        selected_movie_detail.title = $("#floating_title").val();
+        selected_movie_detail.description = $("#floating_overview").val();
+        selected_movie_detail.rating = $("#floating_ratings").val();
+        selected_movie_detail.frontpage = $("#poster_image").attr("src");
+        selected_movie_detail.backdrop = $("#backdrop_image").attr("src");
+        selected_movie_detail.logo = $("#logo_image").attr("src");
+
+        let subtitles = [];
+
+        //traverses through all of the table elements and retrieves subtitle information
+        $("#subtitle_table tbody").children().each((index, element) => {
+            let subtitle_object = {};
+            let $element = $(element);
+
+            let file_id = $element.attr("file-id");
+            subtitle_object["subtitle_file_id"] = file_id;
+            subtitle_object["language_name"] = $element.find(`#floating_language_name_${file_id}`).val();
+            subtitle_object["language_code"] = $element.find(`#floating_language_code_${file_id}`).val();
+            subtitles.push(subtitle_object);
+        });
+
+        let post_details = {
+            movie_details: selected_movie_detail,
+            selected_mp4: selected_mp4,
+            subtitles: subtitles
+        }
+
+        $.post("/upload/movie/send", post_details, function (resp) {
+            console.log(resp);
+            if(resp.success){
+                clearValues();
+            }
+            submit_button.prop("disabled", false);
+            submit_button.text("Submit");
+        });
+    });
+
+    $(window).on("beforeunload", () => {
+        return "Are you sure you want to leave this page? Any changes made will be deleted."
+    });
+
+</script>
+
+</html>

@@ -1,0 +1,243 @@
+<% 
+    var [type, id]=[media.type, media.id];
+    let genres = media.genres != null ? media.genres : [];
+    let genre_string = "";
+    genres.forEach((element, index) => {
+        genre_string += element.name;
+        if(index < genres.length-1){
+            genre_string += ", ";
+        }
+    });
+    let year_of_release = new Date(media.release).getFullYear();
+    let media_type = media.type == "show" ? "TV Series" : media.type == "movie" ? "Movie" : "";
+
+    let duration_object = helper.Duration.fromObject({hours: 0, minutes: media.runtime}).normalize();
+    let duration_string = "";
+
+    if(duration_object.hours != 0){
+        duration_string += `${duration_object.hours} hours `;
+    }
+    duration_string += `${duration_object.minutes} minutes`;
+
+    let detail_string = `${genre_string} • ${media_type} • ${year_of_release}`;
+
+    let accent_color = color != null ? color.rgba : "var(--body-background)";
+
+    let watch_link = `/watch/${type}/${id}/`;
+
+    let seasons = [];
+    if(type == "show"){
+        seasons = Array.from(media.seasons.keys());
+    }
+
+    let credits = media.credits;
+
+    let cast = [];
+    let crew = [];
+
+    if(credits != null){
+        cast = media.credits.cast != null ? media.credits.cast : [];
+        crew = media.credits.crew != null ? media.credits.crew : [];
+    }
+
+    let similar = locals.similar_movies != null ? locals.similar_movies : [];
+
+    let added = locals.is_in_list ? "added" : "";
+
+%>
+<script>
+    function show_season(target, media_type, media_id, season){
+        let modal_selector = `#${media_type}-${media_id}-modal`;
+        let seasons_parent_selector = `${modal_selector} .seasons`;
+        let chosen_season_selector = `${modal_selector} #${media_type}-${media_id}-season-${season}`
+        $(seasons_parent_selector).children().each((index, element) => {
+            let season_div = $(element);
+            season_div.hide();
+        });
+        $(chosen_season_selector).show();
+    }
+
+    function show_panel(target, media_type, media_id, panel){
+        let modal_selector = `#${media_type}-${media_id}-modal`;
+        let panels_parent = `${modal_selector} .panels`;
+        let panel_selector = `${panels_parent} #${media_type}-${media_id}-${panel}-panel`;
+
+        let all_nav_links = $(target).parents("ul").find(".nav-link");
+        all_nav_links.removeClass("active");
+
+        $(panels_parent).children().each((index, element) => {
+            let panel_div = $(element);
+            panel_div.hide();
+        });
+        $(panel_selector).show();
+        $(target).addClass("active");
+    }
+</script>
+
+<div class="modal fade modal-custom media-modal <%= type %>-<%= id %> <%= added %>" id="<%= type %>-<%= id %>-modal" tabindex="-1" aria-labelledby="<%= type %>-<%= id %>-modal-label" aria-hidden="true">
+    <div class="
+            modal-dialog 
+            modal-dialog-centered 
+            modal-dialog-scrollable 
+            modal-fullscreen-lg-down 
+            modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title w-100 text-center" id="<%= type %>-<%= id %>-modal-label"><%= media.title %></h6>
+                <a type="button" class="p-1 me-2" data-bs-dismiss="modal" aria-label="Close"><i class="bi bi-x-lg"></i></a>
+            </div>
+            <div class="modal-body p-0">
+                <div class="picture-details position-relative">
+                    <img src="/images/<%= media.backdrop %>" class="img-fluid" style="min-height:500px; object-fit: cover;">
+                    <!-- Gradient Background -->
+                    <div class="gradient-background" style="
+                    background: rgb(0,0,0); 
+                    background: linear-gradient(300deg, rgba(0,0,0,0) 0%, <%= accent_color %> 90%);"></div>
+                    <div class="media-components"><!-- Media Details -->
+                        <% if(media){ %>
+                            <% if(media.logo != null && media.logo.length != 0){ %>
+                                <img class="img-logo" src="/images/<%= media.logo %>">
+                            <% } else {%>
+                                <h1 class="display-3 title"><%= media.title %></h1>
+                            <% } %>
+                        <% } %>
+                        <div class="w-75 pt-3">
+                            <p class="text-wrap multi-line-truncate"><%= media.description %></p>
+                            <p><%= detail_string %></p>
+                            <div class="">
+                                <button class="btn btn-custom" onclick="goto('<%= watch_link %>')"><i class="bi bi-play-circle"></i> Watch</button>
+                                <% if(added == "added"){ %>
+                                    <button class="btn btn-secondary list-button" onclick="toggle_my_list(this, '<%= id %>', '<%= type %>')"><i class="bi bi-check-circle-fill"></i> Remove from List</button>
+                                <% } else { %>
+                                    <button class="btn btn-secondary list-button" onclick="toggle_my_list(this, '<%= id %>', '<%= type %>')"><i class="bi bi-plus-circle"></i> Add to List</button>
+                                <% } %>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div><!-- Tabs -->
+                    <ul class="nav nav-pills nav-justified underlined-pills">
+                        <% if(type == "show"){ %>
+                            <li class="nav-item">
+                                <a class="nav-link active" onclick="show_panel(this, '<%= type %>', '<%= id %>', 'episodes')"><span>Episodes</span></a>
+                            </li>
+                        <% } %>
+                        <li class="nav-item">
+                            <a class="nav-link <% if(type != "show"){ %> active <% } %>" onclick="show_panel(this, '<%= type %>', '<%= id %>', 'details')">Details</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" onclick="show_panel(this, '<%= type %>', '<%= id %>', 'cast')">Cast</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-capitalize" onclick="show_panel(this, '<%= type %>', '<%= id %>', 'similar')">Similar <%= type %>s</a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="panels"><!-- All Panels Parent -->
+                    <% if(type == "show"){ %>
+                        <div class="p-3" id="<%= type %>-<%= id %>-episodes-panel"><!-- Episode Panel -->
+                            <select class="d-inline rounded custom-select" style="max-width:300px">
+                                <% for(let i=0;i<seasons.length;i++) { %>
+                                    <% let season = seasons[i] %>
+                                    <option value="<%= season %>" onclick="show_season(this, '<%= type %>', '<%= id %>', '<%= season %>')">Season <%= season %></option>
+                                <% } %>
+                            </select>
+                            <div class="seasons">
+                                <% for(let i=0;i<seasons.length;i++) { %>
+                                <% let season = seasons[i] %>
+                                    <div id="<%= type %>-<%= id %>-season-<%= season %>" class="py-3" style="<%= i != 0 ? "display:none" : "" %>">
+                                        <div class="row g-2">
+                                            <% for(let episode of Object.keys(media.seasons.get(season))){ %>
+                                            <% 
+                                                let episode_details = media.seasons.get(season)[episode];
+                                                let episode_watch_link = `/watch/${type}/${id}/${season}/${episode}`;
+                                                let restart_episode_watch_link = `/watch/${type}/${id}/${season}/${episode}?start_time=0`;
+                                            %>
+                                                <div class="col-12 col-sm-6 col-lg-4">
+                                                    <a class="btn shadow-none image-button p-0 m-0" role="button" id="poster_button" href="<%= episode_watch_link %>">
+                                                        <div class="poster-container">
+                                                            <div class="img-container">
+                                                                <img id="poster_image" class="img-fluid" src="/images/<%= episode_details.backdrop %>" />
+                                                            </div>
+                                                            <div class="colored-background"></div>
+                                                            <div class="border-glow"></div>
+                                                            <div class="overlay-components">
+                                                                <i class="bi bi-play-circle centered fs-1" style="color:white"></i>
+                                                            </div>
+                                                        </div>
+                                                    </a>
+                                                    <div class="row g-0">
+                                                        <div class="col-11">
+                                                            <p class="mb-0 text-muted"><strong><%= `Episode ${episode}` %></strong></p>
+                                                            <p class="mb-0"><strong><%= episode_details.title %></strong></p>
+                                                            <p class="mb-0 text-muted"><%= episode_details.description %></p>
+                                                        </div>
+                                                        <div class="col-1 my-2 text-end">
+                                                            <div class="dropdown">
+                                                                <button class="btn btn-secondary text-link transparent transparent-border transparent-active-border p-0" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" onclick="event.stopImmediatePropagation()">
+                                                                    <i class="bi bi-three-dots-vertical fs-5"></i>
+                                                                </button>
+                                                                <ul class="dropdown-menu p-0 dropdown-menu-end shadow-lg">
+                                                                    <li><button class="dropdown-item py-2 fs-6" data-toggle="dropdown" onclick="goto('<%= restart_episode_watch_link %>')"><i class="bi bi-play-circle"></i> Start from Beginning</button></li>
+                                                                </ul>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                <% } %>
+                            </div>
+                        </div>
+                    <% } %>
+                    <div class="p-5" id="<%= type %>-<%= id %>-details-panel" <% if(type == "show"){ %> style="display:none" <% } %>><!-- Details Panel -->
+                        <%  
+                            let details_heading = "About This ";
+                            if(type == "show"){
+                                details_heading += "Show";
+                            }
+                            if(type == "movie"){
+                                details_heading += "Movie";
+                            }
+                        %>
+                        <h5><%= details_heading %></h5>
+                        <h3 class="display-6"><%= media.title %></h3>
+                        <p class="text-muted"><%= media.description %></p>
+                        <p class="text-muted"><%= detail_string %></p>
+                        <p class="text-muted">Runtime: <%= duration_string %></p>
+                    </div>
+                    <div class="p-5" id="<%= type %>-<%= id %>-cast-panel" style="display:none"><!-- Cast Panel -->
+                        <h3 class="display-6">Credits</h3>
+                        <h5 class="">Cast</h5>
+                        <div class="row g-2">
+                            <% for(let person of cast){ %>
+                                <div class="col-12 col-sm-6 col-md-4">
+                                    <div class="p-3 shadow rounded h-100" style="background-color: var(--secondary-body-background)">
+                                        <h5><%= person.name %></h5>
+                                        <p class="m-0"><%= person.character %></p>
+                                    </div>
+                                </div>
+                            <% } %>
+                        </div>
+                        <h5 class="pt-3">Crew</h5>
+                        <div class="row g-2">
+                            <% for(let person of crew){ %>
+                                <div class="col-12 col-sm-6 col-md-4">
+                                    <div class="p-3 shadow rounded h-100" style="background-color: var(--secondary-body-background)">
+                                        <h5><%= person.name %></h5>
+                                        <p class="m-0"><%= person.job %></p>
+                                    </div>
+                                </div>
+                            <% } %>
+                        </div>
+                    </div>
+                    <div class="p-5" id="<%= type %>-<%= id %>-similar-panel" style="display:none"><!-- Similar Movies Panel -->
+                        <h3 class="display-6 text-capitalize">Similar <%= type %>s</h3>
+                        <%- include(`movie_grid.ejs`, {movies: similar}) %>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

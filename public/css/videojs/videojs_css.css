@@ -1,0 +1,200 @@
+.video-js {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    /* height: calc(100vh - 56px); */
+}
+
+* {
+    -webkit-tap-highlight-color: rgba(255, 255, 255, 0) !important;
+    -webkit-focus-ring-color: rgba(255, 255, 255, 0) !important;
+    outline: none !important;
+}
+
+@media (max-width: 978px) {
+    .container {
+        padding: 0px 5%;
+        margin: 0 auto;
+    }
+    .navbar-fixed-top, .navbar-fixed-bottom, .navbar-static-top {
+        margin-left: 0;
+        margin-right: 0;
+        margin-bottom: 0;
+    }
+}
+
+.content {
+    padding: 50px 0;
+    margin: 0 auto;
+}
+
+.poster {
+    border-radius: 10px 10px 10px 10px;
+    max-width: 100%;
+    max-height: 100%;
+}
+
+
+.video-js .vjs-control-bar {
+    padding: 0px 1.5%;
+    z-index: 10;
+}
+
+.video-js .vjs-spacer {
+    margin-left: auto;
+}
+
+.video-js .vjs-remaining-time {
+    position:absolute;
+    right: 3em;
+    min-width: 2em;
+    top: -1.5em;
+    width: 5%;
+}
+
+.video-js .vjs-progress-control {
+    position:absolute;
+    width: 95%;
+    bottom: 3em;
+    height: 5px;
+    margin: 0px !important;
+
+    left: 50%;
+    margin-right: -50%;
+    transform: translate(-50%, -50%);
+}
+
+.video-js .vjs-progress-holder {
+    position:absolute;
+    width: 100%;
+    
+    margin: 0px !important;
+    left: 50%;
+    margin-right: -50%;
+    transform: translate(-50%, -50%);
+}
+
+.vjs-menu li {
+    text-transform: initial;
+}
+
+.video-js .vjs-control:focus, .video-js .vjs-control:focus, .video-js .vjs-control:hover {
+    text-shadow: 0 0 1em #fff;
+}
+
+
+.video-js .vjs-back-button:before {
+    content: "\f00d";
+    font-weight: 900;
+    font-size: 2vw;
+    font-family: "Font Awesome 5 Free";
+}
+
+.video-js .vjs-back-button{
+    color: white;
+    transition-property: color;
+    /* transition-duration: .25s; */
+    transition-timing-function: linear;
+
+    position: absolute;
+    pointer-events: auto;
+
+    top: 2%;
+    right: 2%;
+    height: 5em;
+}
+
+.media-details-collapse {
+    left: 2.5%;
+    position: absolute;
+    pointer-events: auto;
+    bottom: 4.2em;
+}
+
+/* .media-details-collapse p {
+    font-size: .9em;
+    font-weight: bold;
+    margin: 0;
+} */
+
+#media_button {
+    color: lightgray !important;
+    font-weight: bold;
+    pointer-events: auto;
+    padding: 0;
+    background-color: transparent !important;
+    font-size: 1.3em;
+}
+
+#media_button i {
+    padding-left: 10px;
+    color: gray;
+}
+
+#media_details_collapse {
+    color: lightgray;
+    font-size: .9em;
+    pointer-events: auto;
+    width: 75%;
+    background-color: transparent;
+}
+
+#media_details_collapse div {
+    line-height: 1.5;
+    color: lightgray;
+    padding: 0;
+    background-color: transparent;
+    border: none;
+    -webkit-user-select: none; /* Safari */        
+    -moz-user-select: none; /* Firefox */
+    user-select: none;
+}
+
+.vjs-controls-panel {
+    background: linear-gradient(0deg, rgba(0, 0, 0, .3) 0%, rgba(0, 0, 0, 0) 100%);
+    position: absolute;
+    pointer-events: none;
+    width: 100%;
+    height: 100%;
+}
+
+.video-js.vjs-user-inactive .vjs-controls-panel {
+    animation: fadeOut;
+    /* referring directly to the animation's @keyframe declaration */
+    animation-duration: 1s;
+    /* don't forget to set a duration! */
+    animation-fill-mode: both;
+}
+
+.video-js.vjs-user-active .vjs-controls-panel, .video-js.vjs-paused .vjs-controls-panel {
+    animation: fadeIn;
+    /* referring directly to the animation's @keyframe declaration */
+    animation-duration: 1s;
+    /* don't forget to set a duration! */
+    animation-fill-mode: both;
+}
+
+.video-js .vjs-rewind-button:before {
+    content: "\f0e2";
+    font-weight: 900;
+    font-family: "Font Awesome 5 Free";
+}
+
+.video-js .vjs-forward-button:before {
+    content: "\f01e";
+    font-weight: 900;
+    font-family: "Font Awesome 5 Free";
+}
+
+.video-js .vjs-next-episode-button:before {
+    content: "\f051";
+    font-weight: 900;
+    font-family: "Font Awesome 5 Free";
+}
+
+.video-js .vjs-watch-party-button:before {
+    content: "\f0c0";
+    font-weight: 900;
+    font-family: "Font Awesome 5 Free";
+}

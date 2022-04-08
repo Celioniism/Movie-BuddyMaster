@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <%- include ("snippets/header") %>
+</head>
+<script>
+    $(document).ready(() => {
+        initialize_all_luxon_date();
+    });
+</script>
+<style>
+    .completed {
+        color: #00cc4e !important;
+    }
+    .pending {
+        color: #ff6600 !important;
+    }
+    .cancelled {
+        color: #c80000 !important;
+    }
+    .spam {
+        color: #663a00 !important;
+    }
+</style>
+<body>
+    <%- include ("snippets/navbar") %>
+        <div class="container">
+            <h1 class="display-1 py-5">Requests</h1>
+            <form id="request_form" novalidate>
+                <div class="row g-3">
+                    <div class="col-12 col-md-5">
+                        <div class="form-floating mb-3">
+                            <input autocomplete="off" type="text" class="form-control form-control-lg" name="movie_name" id="movie_name" placeholder="Movie/Show Name" required>
+                            <label for="movie_name">Movie/Show Name</label>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-5">
+                        <div class="form-floating mb-3">
+                            <input autocomplete="off" type="text" class="form-control form-control-lg" name="imdb_link" id="imdb_link" placeholder="IMDB Link" required>
+                            <label for="imdb_link">IMDB Link</label>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-2">
+                        <button id="login_button" type="submit" class="form-control form-floating-button btn btn-custom w-100 btn-lg">Request</button>
+                    </div>
+                </div>
+            </form>
+            
+            <table class="table mx-3 mt-3">
+                <thead>
+                    <tr>
+                        <th scope="col">Name</th>
+                        <th scope="col">IMDB ID</th>
+                        <th scope="col">Date Requested</th>
+                        <th scope="col">Date Completed</th>
+                        <th scope="col">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% let requests_array = locals.requests != null ? locals.requests : []; %>
+                    <% for(let i=0;i<requests_array.length;i++) { %>
+                        <% let request = requests_array[i] %>
+                        <tr class="align-middle">
+                            <td><%= request.media_name %></td>
+                            <td><%= request.imdb_id %></td>
+                            <td class="luxon-format-date" error-value="--" current-format="js_date_string" format="LLL dd, yyyy, h:mm a"><%= request.date_requested %></td>
+                            <td class="luxon-format-date" error-value="--" current-format="js_date_string" format="LLL dd, yyyy, h:mm a"><%= request.date_completed %></td>
+                            <td class="<%= request.status.toLowerCase() %>"><%= request.status %></td>
+                            <td><button type="button" onclick="delete_row(this, '<%= request._id %>')" class="btn btn-custom"><i class="bi bi-trash"></i></button></td>
+                        </tr>
+                    <% } %>
+                </tbody>
+            </table>
+        </div>
+</body>
+<script>
+    function delete_row(btn, id){
+        $.post(`/requests/delete/${id}`, {}, function (resp) {
+            if(resp["success"]["success"] == true){
+                var row = btn.parentNode.parentNode;
+                row.parentNode.removeChild(row);
+            }
+        });
+    }
+
+    let form = $('#request_form');
+    let form_inputs = $("#request_form input");
+    let submit_button = $("#request_form button[type=submit]");
+    let post_url = '/requests/send';
+    let submitting_string = "Submitting...";
+    let regular_button_name = "Request";
+
+    form.submit(function (event) {
+        //Stops browser from navigating away from page
+        event.preventDefault();
+
+        //converts the fields into a json format
+        var data = form.serialize();
+
+        //disable the submit button and adds a spinner
+        submit_button.prop("disabled", true);
+        submit_button.html(`<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ${submitting_string}`);
+
+        //sends the data to the server
+        $.post(post_url, data, function (resp) {
+            let successful_result = resp["success"];
+            let redirection_url = successful_result != null ? successful_result["redirect"] : "/";
+            let fields_returned = Object.keys(resp).filter(key => key != "success");
+
+            //find all input elements and iterate through all of them
+            form_inputs.each((index, element) => {
+                //get one of the elements through jQuery
+                let $element = $(element);
+
+                //get the id of the element
+                let id = $element.attr("id");
+
+                //checks the fields returned to see if there is an error or success
+                if (fields_returned.includes(id)) {
+                    let field_object = resp[id];
+
+                    let error_div = $(`#${id} ~ div[class=invalid-feedback]`);
+                    let input_field = $(`#${id}`);
+
+                    if (field_object["success"] == true) {
+                        input_field.addClass("is-valid");
+                        input_field.removeClass("is-invalid");
+                    }
+                    else {
+                        input_field.addClass("is-invalid");
+                        input_field.removeClass("is-valid");
+                        error_div.text(field_object["reason"]);
+                    }
+                }
+                else {
+                    $element.removeClass("is-invalid is-valid");
+                }
+            });
+
+            //if the registration was successful, redirect the user to the home page
+            if (successful_result != null && successful_result["success"] == true) {
+                window.location.replace(redirection_url);
+            }
+            else {
+                console.log(successful_result);
+                //re-enables the register button 
+                submit_button.prop("disabled", false);
+                submit_button.text(regular_button_name);
+            }
+        });
+    });
+</script>
+
+</html>

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <%- include ("../snippets/header") %>
+</head>
+<body>
+    <%- include ("../snippets/navbar") %>
+        <div class="container-lg g-0">
+            <img src="/img/temp_profile_background.jpg" class="w-100" style="min-height:300px; height:auto; max-height:300px; object-fit: cover; object-position: 50% 60%; filter:blur(1.5px);" onerror="this.src=`/img/blank_movie_backdrop.png`">
+            <!-- <img src="/img/temp_pic_3.png" class="w-100" style="min-height:300px; height:auto; max-height:300px; object-fit: cover; filter:blur(1.5px);"> -->
+            <!-- <img src="/img/temp_pic_2.jpg" class="w-100" style="height:auto; max-height:300px; object-fit: cover; object-position: 50% 40%; filter:blur(1px);"> -->
+            <!-- <img src="/img/blank_movie_backdrop.png" class="w-100" style="height:auto; max-height:300px; object-fit: cover; object-position: 50% 60%; filter:blur(1.5px);"> -->
+            <div class="mx-auto pt-5 pb-3">
+                <div class="d-flex justify-content-center" style="position:relative">
+                    <div style="position:absolute; transform: translateY(-100%);">
+                        <img src="<%= locals.profile_picture %>" style="border-color: var(--body-background) !important; object-fit: cover; width:150px; height:150px;" class="figure-img rounded-circle border border-5" onerror="this.src=`/img/default_profile_pic.png`">
+                        <div style="position:absolute; left:70%; top:70%;">
+                            <% if(locals.is_online != null ? locals.is_online : false){ %>
+                                <div class="rounded-circle border border-5" style="border-color: var(--body-background) !important; width:35px; height:35px; background-color: green;"></div>
+                            <% } else { %>
+                                <div class="rounded-circle border border-5" style="border-color: var(--body-background) !important; width:35px; height:35px; background-color: gray;"></div>
+                            <% } %>
+                        </div>
+                    </div>
+                    <div class="py-2">
+                        <h2 class="text-center mb-0"><%= `${user.first_name} ${user.last_name}` %></h2>
+                        <h6 class="text-center text-muted"><%= `@${user.username}` %></h6>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-lg" style="position:relative;" >
+            <div class="row g-3">
+                <div class="col-sm-12 col-md-6">
+                    <div class="shadow p-3">
+                        <h3>About</h3>
+                        <p>
+                            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non sollicitudin felis, et facilisis enim. Vivamus enim diam, auctor auctor neque quis, viverra malesuada leo. Mauris in sollicitudin elit. 
+                        </p>
+                    </div>
+                    <div class="shadow p-3">
+                        <h3>Recently Watched</h3>
+                        <% if (locals.recently_watched != null && recently_watched.length != 0){ %>
+                            <div class="media-collection-sm carousel">
+                                <% for(let i=0;i<recently_watched.length;i++){ %>
+                                <% let movie = recently_watched[i] %>
+                                    <div class="carousel-cell list-item z-index-controller">
+                                        <%- include("../snippets/movie_poster", {movie: movie, hide_dropdown: true}) %>
+                                    </div>
+                                <% } %>
+                            </div>
+                        <% } else { %>
+                            <h4 class="text-muted text-center">Empty</h4>
+                        <% } %>
+                    </div>
+                    <div class="shadow p-3">
+                        <h3>List</h3>
+                        <% if (locals.my_list != null && my_list.length != 0){ %>
+                            <div class="media-collection-sm carousel">
+                                <% for(let i=0;i<my_list.length;i++){ %>
+                                <% let movie = my_list[i] %>
+                                    <div class="carousel-cell list-item z-index-controller">
+                                        <%- include("../snippets/movie_poster", {movie: movie, hide_dropdown: true}) %>
+                                    </div>
+                                <% } %>
+                            </div>
+                        <% } else { %>
+                            <h4 class="text-muted text-center">Empty</h4>
+                        <% } %>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6">
+                    <div class="shadow p-3">
+                        <h3>Badges</h3>
+                        <p class="text-muted">Work in progress</p>
+                    </div>
+                    <div class="shadow p-3">
+                        <h3>Watch Statistics</h3>
+                        <canvas id="myChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+</body>
+<style>
+</style>
+<script>
+    let DateTime = luxon.DateTime;
+    let Interval = luxon.Interval;
+    let Duration = luxon.Duration;
+
+    let today = DateTime.now();
+    let startOfWeek = today.startOf("week");
+    let endOfWeek = today.endOf("week");
+    let week_interval = Interval.fromDateTimes(startOfWeek, endOfWeek);
+
+    var days_watched = <%- JSON.stringify(days_watched) != null ? JSON.stringify(days_watched) : JSON.stringify({}) %>;
+    var days_keys = Object.keys(days_watched);
+
+    let chart_data = [0, 0, 0, 0, 0, 0, 0];
+
+    for(let day of days_keys){
+        let milli = parseInt(day.substring(day.indexOf("_")+1));
+        let day_date = DateTime.fromMillis(milli);
+        let time_watched = days_watched[day];
+        let time_watched_duration = Duration.fromObject({seconds: time_watched.seconds});
+
+        if(week_interval.contains(day_date)){
+            let weekday_num = day_date.weekday;
+            let data_index = weekday_num-1;
+            chart_data[data_index] += time_watched_duration.as("minutes");
+        }
+    }
+    
+    const ctx = document.getElementById('myChart').getContext('2d');
+    const myChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            datasets: [{
+                label: 'Time watched in minutes',
+                data: chart_data,
+                backgroundColor: [
+                    'rgba(5, 73, 141, 1)'
+                ],
+                borderColor: [
+                    'rgba(5, 73, 141, 1)'
+                ],
+                borderWidth: 5
+            }]
+        },
+        options: {
+            interaction: {
+                mode: 'index',
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: "Time watched per day"
+                },
+                tooltip: {
+                    usePointStyle: true,
+                }
+            }
+        }
+    });
+</script>
+<script>
+    $(document).ready(function () {
+        $('.carousel').flickity({
+            groupCells: true,
+            cellAlign: "center",
+            contain: true,
+            resize: true,
+            percentPosition: false,
+            // prevNextButtons: false,
+            pageDots: false,
+            imagesLoaded: true,
+            // wrapAround: true
+        });
+    });
+    $(function () {
+        let form = $('#profile_form');
+        let form_inputs = $("#profile_form input");
+        let submit_button = $("#profile_form button[type=submit]");
+        let post_url = '/profile/send';
+        let submitting_string = "Submitting...";
+        let regular_button_name = "Submit";
+
+        form.submit(function (event) {
+            //Stops browser from navigating away from page
+            event.preventDefault();
+
+            //converts the fields into a json format
+            var data = form.serialize();
+
+            //disable the login button and adds a spinner
+            submit_button.prop("disabled", true);
+            submit_button.html(`<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ${submitting_string}`);
+
+            //sends the data to the server
+            $.post(post_url, data, function (resp) {
+                let successful_result = resp["success"];
+                let redirection_url = successful_result != null ? successful_result["redirect"] : "/";
+                let fields_returned = Object.keys(resp).filter(key => key != "success");
+
+                //find all input elements and iterate through all of them
+                form_inputs.each((index, element) => {
+                    //get one of the elements through jQuery
+                    let $element = $(element);
+
+                    //get the id of the element
+                    let id = $element.attr("id");
+
+                    //checks the fields returned to see if there is an error or success
+                    if (fields_returned.includes(id)) {
+                        let field_object = resp[id];
+
+                        let success_div = $(`#${id} ~ div[class=valid-feedback]`);
+                        let error_div = $(`#${id} ~ div[class=invalid-feedback]`);
+                        let input_field = $(`#${id}`);
+
+                        if (field_object["success"] == true) {
+                            input_field.addClass("is-valid");
+                            input_field.removeClass("is-invalid");
+                            success_div.text(field_object["reason"]);
+                        }
+                        else {
+                            input_field.addClass("is-invalid");
+                            input_field.removeClass("is-valid");
+                            error_div.text(field_object["reason"]);
+                        }
+                    }
+                    else {
+                        $element.removeClass("is-invalid is-valid");
+                    }
+                });
+
+                //if the registration was successful, redirect the user to the home page
+                if (successful_result != null && successful_result["success"] == true) {
+                    window.location.replace(redirection_url);
+                }
+                else {
+                    //re-enables the register button 
+                    submit_button.prop("disabled", false);
+                    submit_button.text(regular_button_name);
+                }
+            });
+        });
+    });
+</script>
+</html>

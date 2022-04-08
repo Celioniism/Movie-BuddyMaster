@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <%- include ("../snippets/header") %>
+</head>
+<script>
+    $(document).ready(() => {
+        initialize_all_luxon_date();
+    });
+</script>
+<body>
+    <%- include ("../snippets/navbar") %>
+
+        <div class="container">
+            <h1 class="display-1 py-5">Users Feedback</h1>
+
+            <div class="table-responsive">
+                <table class="table table-responsive table-striped">
+                    <thead>
+                        <tr>
+                            <th scope="col">Subject</th>
+                            <th scope="col">User</th>
+                            <th scope="col">Date Submitted</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% let all_feedback = locals.feedbacks != null ? locals.feedbacks : []  %>
+                        <% for(let feedback of all_feedback) {%>
+                            <tr class="hoverable" id="<%= feedback._id %>" data-bs-toggle="collapse" data-bs-target="#feedback_collapse_<%= feedback._id %>">
+                                <td><%= feedback.subject %></td>
+                                <td><%= `${feedback.user_id.first_name} ${feedback.user_id.last_name}` %></td>
+                                <td class="luxon-format-date" current-format="js_date_string" format="LLL dd, yyyy, h:mm a"><%= feedback.date_submitted %></td>
+                            </tr>
+                            <tr>
+                                <td colspan="3" class="p-0">
+                                    <div class="collapse shadow-inset" id="feedback_collapse_<%= feedback._id %>">
+                                        <div class="p-3">
+                                            <strong class="fs-4"><%= feedback.subject %></strong>
+                                            <p class="pt-3"><%= feedback.description %></p>
+                                            <hr>
+                                            <p class="text-muted text-start"><%= `${feedback.user_id.first_name} ${feedback.user_id.last_name}` %> <span class="float-end luxon-format-date" current-format="js_date_string" format="LLL dd, yyyy, h:mm a"><%= feedback.date_submitted %></span></p>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+</body>
+</html>

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include ("../snippets/header") %>
+</head>
+<style>
+    .grid {
+        margin: 0 auto;
+    }
+</style>
+
+<script>
+    function delete_user(id){
+        let data = {
+            id: id
+        }
+        $.post("/admin/remove_user", data, function(resp){
+            let success = resp["success"];
+            if(success){
+                let card_parent = $(`#user_${id}`);
+                card_parent.fadeOut(400, () => {
+                    card_parent.remove();
+                })
+            }
+            else{
+                console.log(resp.reason);
+            }
+        });
+    }
+
+    function confirm_deletion(user_id, name, username, email) {
+        if($(`${user_id}_delete_modal`).length){//checks to see if the delete modal exists
+            $(`${user_id}_delete_modal`).remove();
+        }
+        let delete_modal = `
+        <div class="modal fade modal-custom" tabindex="-1" id="${user_id}_delete_modal">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Confirm Deletion</h4>
+                        <a type="button" class="btn-close-custom" data-bs-dismiss="modal" aria-label="Close"><i class="bi bi-x fs-2"></i></a>
+                    </div>
+                    <div class="modal-body">
+                        <h5>Are you sure you want to delete this user?</h5>
+                        <ul class="list-unstyled">
+                            <li><b>Email</b></li>
+                            <li>${email}</li>
+                            <li><b>Name</b></li>
+                            <li>${name}</li>
+                            <li><b>Username</b></li>
+                            <li>${username}</li>
+                        </ul>
+                        <p class="text-muted">This action cannot be undone.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger"  data-bs-dismiss="modal" onclick="delete_user('${user_id}')">Delete</button>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+
+        $("body").append(delete_modal).show();
+        let confirm_delete_modal = bootstrap.Modal.getOrCreateInstance(document.getElementById(`${user_id}_delete_modal`), {});
+        confirm_delete_modal.show();
+    }
+</script>   
+<body>
+    <%- include ("../snippets/navbar") %>
+        <div class="container">
+            <h1 class="display-1 py-5">Users</h1>
+            <div class="row g-2">
+                <% let users = locals.users != null ? locals.users : [] %>
+                <% for(let user of users){ %>
+                    <% let stats = user.user_statistics %>
+                    <div class="col-12 col-md-4 col-lg-3" id="user_<%= user._id %>">
+                        <div class="card">
+                            <img src="/img/blank_movie_backdrop.png" class="w-100" style="height:100px; max-height:150px; height:auto; object-fit: cover; object-position: 50% 60%;" onerror="this.src=`/img/blank_movie_backdrop.png`">
+                            <div class="mx-auto pt-5">
+                                <div class="d-flex justify-content-center" style="position:relative">
+                                    <div style="position:absolute; transform: translateY(-100%);">
+                                        <img src="/profile_image<%= user.profile_picture %>" style="border-color: var(--body-background) !important; object-fit: cover; width:100px; height:100px;" class="figure-img rounded-circle border border-5" onerror="this.src=`/img/default_profile_pic.png`">
+                                        <div style="position:absolute; left:62%; top:62%;">
+                                            <% if(stats && stats.is_online){ %>
+                                                <div class="rounded-circle border border-5" style="border-color: var(--body-background) !important; width:35px; height:35px; background-color: green;"></div>
+                                            <% } else { %>
+                                                <div class="rounded-circle border border-5" style="border-color: var(--body-background) !important; width:35px; height:35px; background-color: gray;"></div>
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="py-2">
+                                    <h4 class="text-center mb-0"><%= `${user.first_name} ${user.last_name}` %></h4>
+                                    <h6 class="text-center text-muted"><%= `@${user.username}` %></h6>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-unstyled">
+                                    <li><b>Last Online</b></li>
+                                    <li><%= stats && stats.last_online ? helper.DateTime.fromJSDate(new Date(stats.last_online)).toRelative() : "--" %></li>
+                                    <li><b>Email</b></li>
+                                    <li><%= user.email %></li>
+                                </ul>
+                                <button class="btn btn-danger" onclick="confirm_deletion('<%= user._id %>', '<%= `${user.first_name} ${user.last_name}` %>', '<%= user.username %>', '<%= user.email %>')">Delete User</button>
+                            </div>
+                        </div>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

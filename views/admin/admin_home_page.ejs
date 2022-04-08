@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <%- include ("../snippets/header") %>
+        <style>
+            a .card:hover {
+                color: var(--dropdown-hover-text-color) !important;
+                background-color: var(--dropdown-hover-background-color) !important;
+            }
+
+            a .card:active {
+                color: var(--dropdown-active-text-color) !important;
+                background-color: var(--dropdown-active-background-color) !important;
+            }
+        </style>
+</head>
+
+<body>
+    <%- include ("../snippets/navbar") %>
+        <div class="container">
+            <h1 class="display-1 py-5">Dashboard</h1>
+            <div class="row g-2 h-100">
+                <% let column_objects = []; %>
+                <% 
+                    column_objects.push({title: "Users", description: "View, modify, or delete users", icon: "fas fa-users", link: "/admin/users"});
+                    column_objects.push({title: "Users Feedback", description: "View all of user submitted feedback", icon: "fas fa-comments", link: "/admin/feedback"});
+                    column_objects.push({title: "Requests", description: "View all user requests", icon: "bi bi-pencil-square", link: "/admin/requests"});
+                    column_objects.push({title: "Invites", description: "Generate, view, and remove invite codes", icon: "fas fa-envelope-open-text", link: "/admin/invites"});
+                    column_objects.push({title: "Featured", description: "View, add, and remove currently featured media", icon: "bi bi-stars", link: "/admin/featured"});
+                    column_objects.push({title: "User Uploads", description: "View, add, or remove user uploads", icon: "bi bi-cloud-upload", link: "/admin/uploads"});
+                %>
+                <% for(let object of column_objects){ %>
+                <div class="col-12 col-sm-12 col-md-6 col-lg-4 col-xl-4">
+                    <a href="<%= object.link %>">
+                        <div class="card h-100 d-flex justify-content-center">
+                            <div class="row row-cols-2 g-0">
+                                <div class="col-3 col-sm-3 col-md-4 col-lg-4 row">
+                                    <div class="justify-content-center d-flex align-items-center">
+                                        <i class="<%= object.icon %> fs-1"></i>
+                                    </div>
+                                </div>
+                                <div class="col-9 col-sm-9 col-md-8 col-lg-8">
+                                    <div class="card-body">
+                                        <h5 class="card-title"><%= object.title %></h5>
+                                        <p class="card-text"><%= object.description %></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <% } %>
+            </div>
+            <div>
+                <!-- Time watched by all users -->
+                <!-- Top 3 leaderboard of most watched -->
+                <!-- List of last online -->
+            </div>
+        </div>
+
+</body>
+
+</html>

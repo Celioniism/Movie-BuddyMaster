@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <%- include ("../snippets/header") %>
+        <script>
+            $(document).ready(() => {
+                init_clipboard();
+
+                $("#clipboard-button").click(function () {
+                    $("#clipboard-button").popover({ placement: "bottom", trigger: "manual", html: true, content: "Copied to clipboard!" }).popover("show");
+
+                    setTimeout(() => {
+                        $("#clipboard-button").popover("dispose");
+                    }, 3000);
+                });
+            });
+
+            async function generate() {
+                const response = await fetch(`/admin/invites/generate`);
+
+                try {
+                    const response_json = await response.json(); //extract JSON from the http response
+                    let invite_code = response_json.invite_code;
+                    $("#invite_code_input").val(response_json.invite_code.code);
+                    insert_invite(invite_code);
+                } catch (err) {
+                    console.log(err);
+                }
+            }
+
+            function insert_invite(invite_object) {
+                if (invite_object == null) {
+                    return;
+                }
+                let id = invite_object._id;
+                let code = invite_object.code;
+                let used_by = invite_object.used_by == null ? "--" : invite_object.used_by;
+
+                let invite_row = `
+                    <tr>
+                        <td><input class="form-control transparent" type="password" value="${code}" id="${id}" disabled></td>
+                        <td>${used_by}</td>
+                        <td>
+                            <button class="btn btn-custom" onclick="visibility_toggler(this)" visibility-target="#${id}">
+                                <i class="bi bi-eye-slash-fill"></i>
+                            </button>
+                            <button class="btn btn-custom" onclick="confirm_deletion(this, '${id}', '${code}')">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>`;
+                    console.log(invite_row);
+                $(invite_row).appendTo("#invite_codes_table tbody").hide().fadeIn(500);
+            }
+
+            async function delete_invite(invite_id){
+                const response = await fetch(`/admin/invites/delete/${invite_id}`);
+
+                try {
+                    const response_json = await response.json(); //extract JSON from the http response
+                    if(response_json == null){
+                        console.log("No response from the server");
+                        return;
+                    }
+                    
+                    if(response_json.success){
+                        $(`#${invite_id}`).parents("tr")[0].remove();
+                    }
+                    else{
+                        console.log(response_json.reason);
+                    }
+
+                } catch (err) {
+                    console.log(err);
+                }
+                let delete_modal = bootstrap.Modal.getOrCreateInstance(document.getElementById(`${invite_id}_delete_modal`), {});
+                delete_modal.hide();
+            }
+
+            function confirm_deletion(target, invite_id, invite_code) {
+                if($(`${invite_id}_delete_modal`).length){//checks to see if the delete modal exists
+                    $(`${invite_id}_delete_modal`).remove();
+                }
+                let delete_modal = `
+                <div class="modal fade modal-custom" tabindex="-1" id="${invite_id}_delete_modal">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Confirm Deletion</h5>
+                                <a type="button" class="btn-close-custom" data-bs-dismiss="modal" aria-label="Close"><i class="bi bi-x fs-2"></i></a>
+                            </div>
+                            <div class="modal-body">
+                                <p>Are you sure you want to delete the invite code<br>"${invite_code}"?<br><br>Note: Deleteing a used invite code will not delete the user</p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="button" class="btn btn-danger" onclick="delete_invite('${invite_id}')">Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+
+                $("body").append(delete_modal).show();
+                let confirm_delete_modal = bootstrap.Modal.getOrCreateInstance(document.getElementById(`${invite_id}_delete_modal`), {});
+                confirm_delete_modal.show();
+            }
+
+        </script>
+</head>
+<style>
+    table tr {/* only apply to this page */
+        vertical-align: middle;
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+    }
+</style>
+
+<body>
+    <%- include ("../snippets/navbar") %>
+
+        <div class="container">
+            <h1 class="display-1 py-5">Invites</h1>
+            <div class="row">
+                <button class="btn btn-custom col-3" onclick="generate()">Generate</button>
+                <div class="col-9">
+                    <div class="input-group">
+                        <input class="form-control" type="text" placeholder="Invite Code" id="invite_code_input">
+                        <span class="d-inline-block match-input-button rounded-end" tabindex="0">
+                            <button id="clipboard-button" class="btn match-input-icon clipboard-button" type="submit"
+                                data-clipboard-target="#invite_code_input">
+                                <i class="bi bi-clipboard"></i>
+                            </button>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="table-responsive py-3">
+                <table class="table table-striped" id="invite_codes_table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Invite Code</th>
+                            <th scope="col">Used By</th>
+                            <th scope="col">Options</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% let invites = locals.invite_codes != null ? locals.invite_codes : [] %>
+                        <% for(let invite of invites){ %>
+                            <tr>
+                                <td><input class="form-control transparent" type="password" value="<%= invite.code %>" id="<%= invite._id %>" disabled></td>
+                                <td><%= invite.used_by != null ? invite.used_by.email : "--" %></td>
+                                <td>
+                                    <button class="btn btn-custom" onclick="visibility_toggler(this)" visibility-target="#<%= invite._id %>">
+                                        <i class="bi bi-eye-slash-fill"></i>
+                                    </button>
+                                    <button class="btn btn-custom" onclick="confirm_deletion(this, '<%= invite._id %>', '<%= invite.code %>')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>   
+                            </tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+</body>
+</html>

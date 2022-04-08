@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <%- include ("snippets/header") %>
+</head>
+
+<body>
+    <%- include ("snippets/navbar") %>
+        <div class="container">
+            <h1 class="display-1 my-5">Feedback</h1>
+            <form id="feedback_form" novalidate>
+                <div class="form-floating mx-3 mb-3">
+                    <input autocomplete="off" type="text" class="form-control" id="subject_input" placeholder="Subject" name="subject_input" required>
+                    <label for="subject_input">Subject</label>
+                    <div class="invalid-feedback"></div>
+                </div>
+                <div class="form-floating mx-3">
+                    <input autocomplete="off" type="text" class="form-control" id="description_input" placeholder="Description" name="description_input" required>
+                    <label for="description_input">Description</label>
+                    <div class="invalid-feedback"></div>
+                </div>
+                <button type="submit" class="btn btn-custom mt-3 mx-3">Submit</button>
+            </form>
+
+            <table class="table mt-3">
+                <thead>
+                    <tr>
+                        <th scope="col">Subject</th>
+                        <th scope="col">Description</th>
+                        <th scope="col">Date Submitted</th>
+                        <th scope="col">Delete</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% let feedback_array = locals.feedbacks != null ? locals.feedbacks : []; %>
+                    <% for(let i=0;i<feedback_array.length;i++) { %>
+                        <% let feed = feedback_array[i] %>
+                        <tr>
+                            <td><%= feed.subject %></td>
+                            <td><%= feed.description %></td>
+                            <td><%= helper.DateTime.fromJSDate(new Date(feed.date_submitted)).toLocal().toFormat("LLL dd, yyyy, h:mm a"); %></td>
+                            <td><button type="button" onclick="delete_row(this, '<%= feed._id %>')" class="btn btn-custom"><i class="bi bi-trash"></i></button></td>
+                        </tr>
+                    <% } %>
+                </tbody>
+            </table>
+        </div>
+
+</body>
+<script>
+    function delete_row(btn, id){
+        $.post(`/feedback/delete/${id}`, {}, function (resp) {
+            if(resp["success"]["success"] == true){
+                var row = btn.parentNode.parentNode;
+                row.parentNode.removeChild(row);
+            }
+        });
+    }
+
+    let form = $('#feedback_form');
+    let form_inputs = $("#feedback_form input");
+    let submit_button = $("#feedback_form button[type=submit]");
+    let post_url = '/feedback/send';
+    let submitting_string = "Submitting...";
+    let regular_button_name = "Submit";
+
+    form.submit(function (event) {
+        //Stops browser from navigating away from page
+        event.preventDefault();
+
+        //converts the fields into a json format
+        var data = form.serialize();
+
+        //disable the submit button and adds a spinner
+        submit_button.prop("disabled", true);
+        submit_button.html(`<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ${submitting_string}`);
+
+        //sends the data to the server
+        $.post(post_url, data, function (resp) {
+            let successful_result = resp["success"];
+            let redirection_url = successful_result != null ? successful_result["redirect"] : "/";
+            let fields_returned = Object.keys(resp).filter(key => key != "success");
+
+            //find all input elements and iterate through all of them
+            form_inputs.each((index, element) => {
+                //get one of the elements through jQuery
+                let $element = $(element);
+
+                //get the id of the element
+                let id = $element.attr("id");
+
+                //checks the fields returned to see if there is an error or success
+                if (fields_returned.includes(id)) {
+                    let field_object = resp[id];
+
+                    let error_div = $(`#${id} ~ div[class=invalid-feedback]`);
+                    let input_field = $(`#${id}`);
+
+                    if (field_object["success"] == true) {
+                        input_field.addClass("is-valid");
+                        input_field.removeClass("is-invalid");
+                    }
+                    else {
+                        input_field.addClass("is-invalid");
+                        input_field.removeClass("is-valid");
+                        error_div.text(field_object["reason"]);
+                    }
+                }
+                else {
+                    $element.removeClass("is-invalid is-valid");
+                }
+            });
+
+            //if the registration was successful, redirect the user to the home page
+            if (successful_result != null && successful_result["success"] == true) {
+                window.location.replace(redirection_url);
+            }
+            else {
+                //re-enables the register button 
+                submit_button.prop("disabled", false);
+                submit_button.text(regular_button_name);
+            }
+        });
+    });
+</script>
+
+</html>

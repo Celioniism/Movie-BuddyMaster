@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <%- include ("snippets/header") %>
+</head>
+<script>
+    $(function () {
+        initialize_media_collection_flickity();
+    });
+</script>
+<body>
+    <%- include ("snippets/navbar") %>
+    <% let movies=locals.movies !=null ? locals.movies : {} %>
+    <% let movie_keys=Object.keys(movies); %>
+    <% movie_keys.sort() %>
+
+    <h1 class="px-3 display-4">Movies</h1>
+    <% for(let key of movie_keys){ %>
+        <% let movies_in_genre=movies[key] %>
+        <div class="px-3">
+            <%- include("snippets/movie_row", {title: key, movies: movies_in_genre}) %>
+        </div>
+    <% } %>
+</body>
+</html>

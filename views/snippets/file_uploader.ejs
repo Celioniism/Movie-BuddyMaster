@@ -1,0 +1,184 @@
+
+<style>
+    input[type="file"] {
+        position: fixed;
+        right: 100%;
+        bottom: 100%;
+    }
+
+    .custom-file-upload .file-upload-label {
+        border: none;
+        display: inline-block;
+        padding: 6px 12px;
+        cursor: pointer;
+    }
+
+    .custom-file-upload label.disabled {
+        pointer-events: none;
+        opacity: .65;
+    }
+
+</style>
+<script>
+
+    let isUploading = false;
+    //This checks if any files have been selected, if so, display which file has been select or how many files have been selected in the upload_input element
+    $('form.custom-file-upload').on('change', function (e) {
+        var fileElement = e.target;
+        var files = fileElement.files;
+        if (files != null) {
+            var file_name_field = fileElement.parentNode.querySelector(".file-upload-field");
+            if (files.length > 1) {
+                file_name_field.value = `${files.length} files selected`;
+            }
+            else if (files.length == 1) {
+                file_name_field.value = files[0].name;
+            }
+            else if (files.length == 0) {
+                file_name_field.value = `No file selected`;
+            }
+        }
+    });
+
+    function updateProgressBar(percentage) {
+        let file_upload_form = $("form.custom-file-upload");
+        let progress_bar_id = file_upload_form.attr("progress-id");
+        let progress_bar = $(progress_bar_id);
+
+        if (progress_bar.length) {
+            progress_bar.parent().removeClass("d-none");
+
+            progress_bar.css("width", `${percentage}%`);
+            progress_bar.attr("aria-valuenow", `${percentage}`);
+            progress_bar.text(`${percentage}%`);
+        }
+    }
+
+    $('form.custom-file-upload').submit((event) => {
+        //Stops browser from navigating away from page
+        event.preventDefault();
+
+        if (isUploading) {
+            return;
+        }
+
+        let file_upload_form = $("form.custom-file-upload");
+        let file_upload_input = file_upload_form.find("input[type=file]");
+
+        //Check if any files have been selected, if not don't upload anything
+        if (file_upload_input.val() == "") {
+            return;
+        }
+
+        isUploading = true;
+
+        let progress_bar_id = file_upload_form.attr("progress-id");
+        let error_modal_selector = file_upload_form.attr("upload-failed-modal");
+
+        //get the elements of progress bar and error modal elements
+        let progress_bar = $(progress_bar_id);
+        let error_modal = $(error_modal_selector);
+        let error_modal_title = error_modal.find(".modal-title");
+        let error_modal_description = error_modal.find(".modal-body");
+
+        let upload_button = file_upload_form.find("button[type=submit]");
+        let select_files = file_upload_form.find(".selected_files_label");
+        let upload_input = file_upload_form.find(".file-upload-field");
+
+        //Reset the progress bar
+        if (progress_bar.length) {
+            progress_bar.removeClass("bg-success");
+            progress_bar.removeClass("bg-danger");
+        }
+
+        //disable the upload button, select button, and input field
+        upload_button.prop("disabled", true);
+        select_files.addClass("disabled");
+        upload_input.prop("disabled", true);
+
+        //convert form fields to FormData
+        var formData = new FormData(event.target);
+        
+        //Start POST request
+        axios.request({
+            method: "POST",
+            url: "/upload/files/send",
+            data: formData,
+            withCredentials: true,
+            onUploadProgress: ProgressEvent => {
+                let percentageFloat = parseFloat(ProgressEvent.loaded / ProgressEvent.total * 100).toFixed(2);
+
+                updateProgressBar(percentageFloat);
+            }
+        }).then(data => {
+            //Only get the custom data that the server sends
+            let results = data.data;
+            let resultKeys = Object.keys(results);
+            let all_success = true;//this determines if all of the files have successfully been uploaded
+
+            //Build error description
+            let error_description = "<h6>These files have failed to upload<h6>";
+            error_description += "<ul>";
+
+            //Checks the results if any file has failed to upload, if so add it to the error description and set all_success to false
+            resultKeys.forEach(key => {
+                let result = results[key]
+                if (!result.success) {
+                    all_success = false;
+                    error_description += `<li><b>${key}</b>: ${result.reason}</li>`;
+                }
+            });
+
+            error_description += "</ul>";
+
+            //if all files have succesfully uploaded, set progress bar to green
+            if (all_success) {
+                progress_bar.addClass("bg-success");
+                progress_bar.text("Upload Successful!");
+            }
+            else {
+                progress_bar.addClass("bg-danger");
+                progress_bar.text("Upload Failed!");
+
+                let error_modal_object = new bootstrap.Modal(error_modal);
+                error_modal_title.text("Upload Failed");
+                error_modal_description.html(error_description);
+                error_modal_object.show();
+            }
+
+            //Clear the file input and the file input text field
+            file_upload_input.val("");
+            upload_input.val("");
+
+            //Set isUploading to false, since the uploading is finished
+            isUploading = false;
+
+            //Re-enable the buttons
+            upload_button.prop("disabled", false);
+            select_files.removeClass("disabled");
+            upload_input.prop("disabled", false);
+        }).catch(function (error) {
+            //handle error
+            console.log(error);
+        });
+    });
+    /* Example of upload element
+        - requires class [custom-file-upload]
+        - optional attribute [progress-id] - can be a selector
+        - requires attribute [upload-failed-modal] - can be a css selector
+
+        -requires class in input [file-upload-field]
+        -requires class in file input [selected_files_label]
+        <form class="input-group custom-file-upload input-group-lg" progress-id="#upload_progress" upload-failed-modal="#upload-failed">
+            <input type="text" class="form-control file-upload-field" placeholder="No file selected" readonly disabled>
+            <label for="file-upload-input" class="btn btn-custom selected_files_label">
+                Select files
+            </label>
+            <button class="btn btn-custom" type="submit">Upload</button>
+            <input id="file-upload-input" name="movie_uploads" type="file" multiple />
+        </form>
+        <div class="progress my-1 d-none">
+            <div id="upload_progress" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%">0%</div>
+        </div>
+    */
+</script>

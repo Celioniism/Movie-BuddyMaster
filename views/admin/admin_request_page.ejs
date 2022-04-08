@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <%- include ("../snippets/header") %>
+</head>
+<script>
+    function update_status(target){
+        let $this = $(target);
+        let dropdown_id = $this.attr("dropdown-id");
+        let $dropdown = $("#"+dropdown_id);
+
+        let request_id = $this.closest("tr").attr("request-id");
+        let option = $dropdown.text().trim();
+
+        if(option == "Completed" || option == "Pending" || option == "Cancelled" || option == "Spam" || option == "Delete"){
+            data = {
+                request_id: request_id,
+                option: option
+            };
+            $.post('/admin/requests/update_request', data, function (resp) {
+                if(resp && resp["success"]){
+                    if(resp.status == "Delete"){
+                        $(`#${resp.request_id}, [request-id=${resp.request_id}]`).remove();
+                    }
+                    else{
+                        console.log(resp);
+                        let date_completed_string = resp.date_completed;
+                        let request_status_string = resp.status;
+
+                        let $request_status = $(`#${resp.request_id} [name=status]`);
+                        let $date_completed = $(`#${resp.request_id} [name=date_completed], [request-id=${resp.request_id}] [name=date_completed]`);
+
+                        let $options_button = $(`[request-id=${resp.request_id}] .requests.dropdown dropdown-toggle`);
+
+                        $date_completed.text(date_completed_string != null ? date_completed_string : "--");
+                        if($date_completed != null){
+                            $date_completed.removeClass("luxon-format-date-initialized");
+                            initialize_luxon_date($date_completed);
+                        }
+
+                        $request_status.removeClass("pending completed cancelled spam delete");
+                        $request_status.text(request_status_string);
+                        $request_status.addClass(request_status_string.toLowerCase());
+
+                        $options_button.removeClass("pending completed cancelled spam delete");
+                        $options_button.text("Options");
+                    }
+                }
+            });
+        }
+    }
+    $(document).ready(() => {
+        initialize_all_luxon_date();
+        
+        $(".requests .dropdown-item").click(function(){
+            let $this = $(this);
+            let options_dropdown = $this.closest(".dropdown.requests").find("a");
+            let options_dropdown_id = options_dropdown.attr("id");
+            let status = $this.attr("status");
+
+            options_dropdown.removeClass("pending");
+            options_dropdown.removeClass("completed");
+            options_dropdown.removeClass("cancelled");
+            options_dropdown.removeClass("spam");
+            options_dropdown.removeClass("delete");
+
+            options_dropdown.addClass(status);
+            options_dropdown.html($this.html());
+        });
+    });
+</script>
+<style>
+    .completed {
+        color: #00cc4e !important;
+    }
+    .pending {
+        color: #ff6600 !important;
+    }
+    .cancelled {
+        color: #c80000 !important;
+    }
+    .spam {
+        color: #663a00 !important;
+    }
+    .delete {
+        color: #c20088 !important;
+    }
+</style>
+<body>
+    <%- include ("../snippets/navbar") %>
+        <div class="container">
+            <h1 class="display-1 py-5">Requests</h1>
+            
+            <div class="table-responsive">
+                <table class="table table-responsive table-striped">
+                    <thead>
+                        <tr>
+                            <th scope="col">Media Name</th>
+                            <th scope="col">User</th>
+                            <th scope="col">Date Submitted</th>
+                            <th scope="col">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% let all_requests = locals.requests != null ? locals.requests : []  %>
+                        <% for(let i=0;i<all_requests.length;i++) {%>
+                        <% let request = all_requests[i] %>
+                            <tr class="hoverable" id="<%= request._id %>" data-bs-toggle="collapse" data-bs-target="#request_collapse_<%= request._id %>">
+                                <td><%= request.media_name %></td>
+                                <td><%= `${request.user.first_name} ${request.user.last_name}` %></td>
+                                <td name="date_requested" error-value="--" class="luxon-format-date" current-format="js_date_string" format="LLL dd, yyyy, h:mm a"><%= request.date_requested %></td>
+                                <td name="status" class="<%= request.status.toLowerCase() %>"><%= request.status %></td>
+                            </tr>
+                            <tr request-id="<%= request._id %>">
+                                <td colspan="4" class="p-0">
+                                    <div class="collapse shadow-inset" id="request_collapse_<%= request._id %>">
+                                        <div class="p-3">
+                                            <h3><%= request.media_name %></h3>
+                                            <p class="pt-3">Link: <a href='<%= request.imdb_link %>'><%= request.imdb_link %></a></p>
+                                            <h4>Date Requested</h4>
+                                            <h6 name="date_requested" error-value="--" class="luxon-format-date" current-format="js_date_string" format="LLL dd, yyyy, h:mm a"><%= request.date_requested %></h6>
+                                            <h4>Date Completed</h4>
+                                            <h6 name="date_completed" error-value="--" class="luxon-format-date" current-format="js_date_string" format="LLL dd, yyyy, h:mm a"><%= request.date_completed %></h6>
+
+
+                                            <div class="text-end">
+                                                <div class="dropdown requests">
+                                                    <a class="btn btn-custom dropdown-toggle" role="button" id="options-<%= i %>" data-bs-toggle="dropdown"  data-bs-boundary="window" aria-haspopup="true" aria-expanded="false">
+                                                        Options
+                                                    </a>
+                                                    <button dropdown-id="options-<%= i %>" class="btn btn-custom" onclick="update_status(this)"><i class="bi bi-check"></i> Confirm</button>
+
+                                                    <div class="dropdown-menu dropdown-menu-end" aria-labelledby="options-<%= i %>">
+                                                        <button class="dropdown-item" >Options</button>
+                                                        <div class="dropdown-divider"></div>
+                                                        <button class="dropdown-item completed" status="completed">Completed</button>
+                                                        <button class="dropdown-item cancelled" status="cancelled">Cancelled</button>
+                                                        <button class="dropdown-item spam" status="spam">Spam</button>
+                                                        <button class="dropdown-item pending" status="pending">Pending</button>
+                                                        <button class="dropdown-item delete" status="delete">Delete</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <hr>
+                                            <p class="text-muted text-start"><%= `${request.user.first_name} ${request.user.last_name}` %> <span class="float-end luxon-format-date" current-format="js_date_string" format="LLL dd, yyyy, h:mm a"><%= request.date_requested %></span></p>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+</body>
+
+</html>

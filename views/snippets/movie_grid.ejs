@@ -1,0 +1,10 @@
+<div class="row media-grid g-2">
+    <% for(let i=0;i<movies.length;i++){ %>
+    <% let movie = movies[i] %>
+        <div class="z-index-controller list-item col-6 col-sm-6 col-md-4 col-lg-3 col-xl-2">
+            <div class="media-grid-container">
+                <%- include("movie_poster", {movie: movie}) %>
+            </div>
+        </div>
+    <% }%>
+</div>

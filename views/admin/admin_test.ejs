@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <style>
+    .packery-drop-placeholder {
+        outline: 3px dashed #444;
+        outline-offset: -6px;
+        /* transition position changing */
+        -webkit-transition: -webkit-transform 0.2s;
+                transition: transform 0.2s;
+      }
+    </style>
+    <%- include ("../snippets/header") %>
+        <script src="https://unpkg.com/packery@2/dist/packery.pkgd.min.js"></script>
+        <script src="https://unpkg.com/draggabilly@2/dist/draggabilly.pkgd.min.js"></script>
+        <script>
+            $(document).ready(() => {
+                var $draggable = $('.draggable').draggabilly({
+                    // options...
+                })
+                var $grid = $('.grid').packery({
+                    itemSelector: '.grid-item',
+                    columnWidth: 288,
+                    gutter: 10
+                });
+
+                // make all grid-items draggable
+                $grid.find('.grid-item').each(function (i, gridItem) {
+                    var draggie = new Draggabilly(gridItem);
+                    // bind drag events to Packery
+                    $grid.packery('bindDraggabillyEvents', draggie);
+                });
+            });
+        </script>
+</head>
+<body>
+    <%- include ("../snippets/navbar") %>
+    <div class="container">
+        <div class="grid">
+            <div class="grid-item">
+                <div class="card bg-primary" style="max-width: 18rem;">
+                    <div class="card-header">Header</div>
+                    <div class="card-body">
+                        <h5 class="card-title">Primary card title</h5>
+                        <p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="grid-item">
+                <div class="card text-white bg-primary" style="max-width: 18rem;">
+                    <div class="card-header">Header</div>
+                    <div class="card-body">
+                        <h5 class="card-title">Primary card title</h5>
+                        <p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="grid-item">
+                <div class="card text-white bg-primary" style="max-width: 18rem;">
+                    <div class="card-header">Header</div>
+                    <div class="card-body">
+                        <h5 class="card-title">Primary card title</h5>
+                        <p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="grid-item">
+                <div class="card text-white bg-primary" style="max-width: 18rem;">
+                    <div class="card-header">Header</div>
+                    <div class="card-body">
+                        <h5 class="card-title">Primary card title</h5>
+                        <p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="grid-item">
+                <div class="card text-white bg-primary" style="max-width: 18rem;">
+                    <div class="card-header">Header</div>
+                    <div class="card-body">
+                        <h5 class="card-title">Primary card title</h5>
+                        <p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="grid-item">
+                <div class="card text-white bg-primary" style="max-width: 18rem;">
+                    <div class="card-header">Header</div>
+                    <div class="card-body">
+                        <h5 class="card-title">Primary card title</h5>
+                        <p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="grid-item">
+                <div class="card text-white bg-primary" style="max-width: 18rem;">
+                    <div class="card-header">Header</div>
+                    <div class="card-body">
+                        <h5 class="card-title">Primary card title</h5>
+                        <p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="grid-item">
+                <div class="card text-white bg-primary" style="max-width: 18rem;">
+                    <div class="card-header">Header</div>
+                    <div class="card-body">
+                        <h5 class="card-title">Primary card title</h5>
+                        <p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<% var [type, id]=[movie.type, movie.id] %>
+<% var watch_link=`/watch/${type}/${id}/`; %>
+<a class="btn shadow-none image-button <%= type %>-<%= id %>" role="button" onclick="show_media_modal('<%= type %>', '<%= id %>')">
+    <div class="poster-container">
+        <div class="img-container">
+            <img src="<%= locals.image_path == null ? "" : locals.image_path %>/<%= movie.frontpage %>"  onerror="this.src=`/img/blank_movie_poster.png`"/>
+
+            <!-- <img class=" poster lazyload" src="/assets/img/filler.png" data-src="<%# movie.frontpage %>"> -->
+        </div>
+        <div class="colored-background"></div>
+        <div class="border-glow"></div>
+        <div class="overlay-components">
+            <button class="btn btn-lg btn-circle centered transparent remove-focus-border " onclick="event.stopImmediatePropagation(); goto('<%= watch_link %>')"><i class="bi bi-play-circle centered fs-1 text-white text-link border-0"></i></button>
+        </div>
+        <% if(locals.hide_dropdown == null || (locals.hide_dropdown == false || locals.hide_dropdown == "false")){  %>
+            <div class="dropdown position-top-right details-menu">
+                <button class="btn btn-secondary text-link transparent transparent-border transparent-active-border" type="button" data-bs-toggle="dropdown" data-bs-auto-close="true" aria-expanded="false" onclick="event.stopImmediatePropagation()">
+                    <i class="more_details_icon bi bi-three-dots-vertical"></i>
+                </button>
+                <ul class="dropdown-menu p-0 dropdown-menu-end">
+                    <li>
+                        <button class="dropdown-item p-2" onclick="event.stopImmediatePropagation(); goto('<%= watch_link %>')">
+                            <div class="row row-cols-2 g-1 align-items-center" style="width:240px">
+                                <div class="col-6" style="width:120px; position: relative;">
+                                    <img style="width:100%; height: auto; border-radius: 0px;" src="<%= locals.image_path == null ? "" : locals.image_path %>/<%= movie.backdrop %>"  onerror="this.src=`/img/blank_movie_backdrop.png`"/>
+                                    <div class="basic-overlay transparent">
+                                        <i class="bi bi-play-circle-fill centered text-white"></i>
+                                    </div>
+                                </div>
+                                <div class="col-6" style="width:120px">
+                                    <small>Play</small>
+                                    <p class="text-wrap multi-line-truncate" style="max-width:200px"><%= movie.title %></p>
+                                </div>
+                            </div>
+                        </button>
+                    </li>
+                    <li><button class="dropdown-item p-3 fs-5" data-toggle="dropdown" onclick="event.stopImmediatePropagation(); show_media_modal('<%= type %>', '<%= id %>')"><i class="bi bi-info-circle"></i> Details</button></li>
+                    <li><button class="dropdown-item p-3 fs-5 list-button" onclick="event.stopImmediatePropagation(); toggle_my_list(this, '<%= id %>', '<%= type %>')"><i class="bi bi-plus-circle"></i> Add to List</button></li>
+                </ul>
+            </div>
+        <% } %>
+    </div>
+</a>

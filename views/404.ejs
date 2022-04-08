@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en" class="h-100">
+
+<head>
+    <%- include ("snippets/header") %>
+</head>
+<style>
+    .background {
+        background-repeat: no-repeat;
+        background-size: cover;
+        background-position: center;
+    }
+
+    .text-shadow {
+        text-shadow: 
+            0px 4px 3px rgba(0,0,0,0.4),
+            0px 8px 13px rgba(0,0,0,0.1),
+            0px 18px 23px rgba(0,0,0,0.1);
+    }
+</style>
+
+<body class="h-100">
+    <div class="container-fluid h-100 d-flex flex-column">
+        <%- include ("snippets/navbar") %>
+        <div class="row flex-fill">
+            <div class="col background">
+                <div class="centered text-center">
+                    <h1 style="font-size: 16vw" class="text-shadow">404</h1>
+                    <h2 id="custom_phrase" class="text-shadow"></h2>
+                    <a class="btn btn-custom" href="/">Return Home</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+<script>
+    var random_phrases = [
+        "These are not the droids you're looking for",
+        "Oops! wrong way, heres the way back.",
+        "The page you're looking for does not exist",
+        "Follow the yellow brick road!",
+        "Shucks, seems like you're out of luck, here's a way back. ",
+        "Look, we even made a nice little button for you"
+    ];
+
+    var random_background = [
+        "/img/404/404_night.png",
+        "/img/404/404_campfire.gif",
+        "/img/404/404_mountain.gif",
+        "/img/404/404_aliens.gif",
+        "/img/404/404_lost_at_sea.gif"
+    ];
+
+    $("#custom_phrase").text(random_phrases[random_phrases.length * Math.random() | 0]);
+
+    $(".background").css("background-image", `url(${random_background[random_background.length * Math.random() | 0]})`);
+</script>
+
+</html>

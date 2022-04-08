@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <%- include ("snippets/header") %>
+</head>
+<script>
+    async function search(query, target) {//might need to change fetch URL
+
+        //Checks to see if query isn't an empty string, also checks to see if the search_url exists
+        if (query.length == 0) {
+            return;
+        }
+
+        const response = await fetch(`/search/search_row/${query}`);
+        try {
+            const rows = await response.json();
+            let movie_row = rows.movie_row;
+            let show_row = rows.show_row;
+            let results_dom = $(".search_results");
+
+            results_dom.empty();
+            if((movie_row == null || movie_row.length == 0) && (show_row == null || show_row.length == 0)){
+                results_dom.append(`<h6 class="text-center display-4 text-muted py-5">No results found<h6>`);
+            }
+            else{
+                results_dom.append(movie_row);
+                results_dom.append(show_row);
+            }
+            
+            initialize_z_index_controller(`.search_results .z-index-controller`);
+            initialize_media_collection_flickity();
+        } catch (err) {
+            console.log(err);
+        }
+    }
+    $(document).ready(() => {
+        var search_timer;
+        $('#search_input').on('input', function (e) {
+            let $this = $(this);
+            if ($this.val().length != 0) {
+                clearTimeout(search_timer);
+                var ms = 500; // milliseconds
+                search_timer = setTimeout(function() {
+                    search($this.val(), $this);
+                }, ms);
+            }
+        });
+    });
+</script>
+<body>
+    <%- include ("snippets/navbar") %>
+    <div class="p-3">
+        <h1 class="display-1 py-5">Search</h1>
+        <div class="form-floating my-3">
+            <input type="text" class="form-control" id="search_input" placeholder="Search">
+            <label for="search_input">Search</label>
+        </div>
+        <div class="search_results">
+
+        </div>
+    </div>
+</body>
+</html>

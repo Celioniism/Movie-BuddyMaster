@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <%- include ("../snippets/header") %>
+    
+</head>
+<style>
+    #profile_input_label .overlay:hover{
+        background-color: var(--generic-hover-color);
+        opacity: .2;
+    }
+    #profile_input_label .overlay:active {
+        background-color: var(--generic-active-color);
+        opacity: .2;
+    }
+</style>
+<script>
+    function form_submit(form, post_url, callback){
+        // let form = form;
+        let form_inputs = $("input", form);
+        let submit_button = $("button[type=submit]", form);
+        // let post_url  = '/login/send';
+        let submitting_string = "Submitting...";
+        let regular_button_name = "Save changes";
+
+        form.submit(function (event) {
+            //Stops browser from navigating away from page
+            event.preventDefault();
+
+            //converts the fields into a json format
+            var data = form.serialize();
+
+            //disable the login button and adds a spinner
+            submit_button.prop("disabled", true);
+            submit_button.html(`<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ${submitting_string}`);
+
+            //sends the data to the server
+            $.post(post_url, data, function (resp) {
+                let fields_returned = Object.keys(resp).filter(key => key != "success");
+
+                //find all input elements and iterate through all of them
+                form_inputs.each((index, element) => {
+                    //get one of the elements through jQuery
+                    let $element = $(element);
+
+                    //get the id of the element
+                    let id = $element.attr("id");
+
+                    //checks the fields returned to see if there is an error or success
+                    if (fields_returned.includes(id)) {
+                        let field_object = resp[id];
+
+                        let success_div = $(`#${id} ~ div[class=valid-feedback]`);
+                        let error_div = $(`#${id} ~ div[class=invalid-feedback]`);
+                        let input_field = $(`#${id}`);
+
+                        if (field_object["success"] == true) {
+                            input_field.addClass("is-valid");
+                            input_field.removeClass("is-invalid");
+                            success_div.text(field_object["reason"]);
+                        }
+                        else {
+                            input_field.addClass("is-invalid");
+                            input_field.removeClass("is-valid");
+                            error_div.text(field_object["reason"]);
+                        }
+                    }
+                    else {
+                        $element.removeClass("is-invalid is-valid");
+                    }
+                });
+
+                callback(resp);
+
+                //re-enables the register button 
+                submit_button.prop("disabled", false);
+                submit_button.text(regular_button_name);
+            });
+        });
+    }
+
+    function clear_data(type){
+        let data = {
+            type: type
+        }
+        $.post("/settings/clear", data, (resp) => {
+            console.log(resp);
+        });
+    }
+
+    function toggle_theme(){
+        let checkbox = $("#theme_toggle");
+        checkbox.prop("checked", !checkbox.prop("checked"));
+
+        if(checkbox.prop("checked")){
+            set_theme("light");
+        }
+        else{
+            set_theme("dark");
+        }
+    }
+
+    $(document).ready(() => {
+        initialize_all_luxon_date();
+
+        let checkbox = $("#theme_toggle");
+        let current_theme = localStorage.getItem('theme');
+        
+        if(current_theme){
+            if(current_theme == "light"){
+                checkbox.prop("checked", true);
+            }
+            else{
+                checkbox.prop("checked", false);
+            }
+        }
+
+        form_submit($("#change_email_form"), "/settings/change_email/send", (resp) => {
+            if(resp.hasOwnProperty("email_input") && resp["email_input"].email != null){
+                $("#email_div").text(resp["email_input"].email);
+            }
+        });
+        form_submit($("#change_username_form"), "/settings/change_username/send", (resp) => {
+            if(resp.hasOwnProperty("username_input") && resp["username_input"].username != null){
+                $("#username_div").text(resp["username_input"].username);
+            }
+        });
+        form_submit($("#change_name_form"), "/settings/change_name/send", (resp) => {
+            if(resp.hasOwnProperty("last_name_input") && resp["last_name_input"].fullname != null){
+                $("#name_div").text(resp["last_name_input"].fullname);
+            }
+            if(resp.hasOwnProperty("first_name_input") && resp["first_name_input"].fullname != null){
+                $("#name_div").text(resp["first_name_input"].fullname);
+            }
+        });
+        form_submit($("#change_password_form"), "/settings/change_password/send", (resp) => {
+            console.log(resp["success"]);
+            $("#change_password_form input").val("");
+        });
+
+        
+        $("#profile_input").change((evt) => {
+            const [file] = evt.currentTarget.files
+            if (file) {
+                $("#profile_temp_input").attr("src", URL.createObjectURL(file));
+            }
+        });
+        
+        $('#change_profile_pic_form #profile_input').on('change', function (e) {
+            var fileElement = e.target;
+            var files = fileElement.files;
+            if (files != null) {
+                var profile_img_element = $(fileElement).parent().find("#profile_input_label img");
+                var overlay_div = $(fileElement).parent().find("#profile_input_label .overlay");
+                var upload_icon = $(fileElement).parent().find("#profile_input_label i");
+                if (files.length == 1) {
+                    $(upload_icon).hide();
+                }
+                else if (files.length == 0) {
+                    $(profile_img_element).attr("src", "/img/blank_movie_backdrop.png");
+                    $(upload_icon).show();
+                }
+            }
+        });
+
+        let change_profile_pic_modal = $("#change_profile_pic_modal");
+        $(change_profile_pic_modal).on("show.bs.modal", (event) => {
+            $("#error_field", change_profile_pic_modal).html("");
+            $(".profile_pic", change_profile_pic_modal).attr("src", `/img/blank_movie_backdrop.png`);
+            $("#profile_input_label i", change_profile_pic_modal).show();
+        });
+
+        $("#change_profile_pic_form").submit((event) => {
+            //Stops browser from navigating away from page
+            event.preventDefault();
+
+            let error_field = $("#change_profile_pic_modal #error_field");
+
+            //convert form fields to FormData
+            var formData = new FormData(event.target);
+            
+            //Start POST request
+            axios.request({
+                method: "POST",
+                url: "/settings/change_profile_pic/send",
+                data: formData,
+                withCredentials: true
+            }).then(data => {
+                //Only get the custom data that the server sends
+                let results = data.data;
+                let resultKeys = Object.keys(results);
+                let all_success = true;//this determines if all of the files have successfully been uploaded
+
+                //Build error description
+                let error_description = "";
+
+                //Checks the results if any file has failed to upload, if so add it to the error description and set all_success to false
+                resultKeys.forEach(key => {
+                    let result = results[key]
+                    if (!result.success) {
+                        all_success = false;
+                        error_description += `<b>${key}</b>: ${result.reason}`;
+                    }
+                });
+
+                //if all files have succesfully uploaded, set progress bar to green
+                if(!all_success) {
+                    error_field.html(error_description);
+                }
+                else{
+                    let result_object = results["new_profile_pic"];
+                    if(result_object){
+                        let new_pic = result_object['profile_picture'];
+                        $(".profile_pic").attr("src", `/profile_image${new_pic}`);
+                        let model_object = bootstrap.Modal.getOrCreateInstance(change_profile_pic_modal[0]);
+                        model_object.hide();
+                    }
+                }
+            }).catch(function (error) {
+                //handle error
+                console.log(error);
+            });
+        });
+    });
+
+
+</script>
+<body>
+    <%- include ("../snippets/navbar") %>
+        <div class="container">
+            <h1 class="display-1 py-5">Settings</h1>
+
+            <!-- Basic Info -->
+            <div class="shadow rounded my-4" style="background-color: var(--secondary-body-background)">
+                <h3 class="p-3">Basic Info</h3>
+                <ul class="list-group list-group-flush clickable">
+                    <li class="list-group-item" data-bs-toggle="modal" data-bs-target="#change_profile_pic_modal">
+                        <div class="p-3">
+                            <div class="row">
+                                <div class="col-4 align-self-center">
+                                    Photo
+                                </div>
+                                <div class="col-4 text-muted align-self-center">
+                                    A picture of you
+                                </div>
+                                <div class="col-4 align-self-center px-5">
+                                    <img src="<%= `/profile_image${user.profile_picture}` %>" style="width:75px; height:75px; object-fit: cover; float:right;" class="rounded-circle profile_pic" onerror="this.src=`/img/default_profile_pic.png`">
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="list-group-item" data-bs-toggle="modal" data-bs-target="#change_email_modal">
+                        <div class="p-3">
+                            <div class="row">
+                                <div class="col-4 align-self-center">
+                                    Email
+                                </div>
+                                <div class="col-7 align-self-center" id="email_div">
+                                    <%= user.email %>
+                                </div>
+                                <div class="col-1 text-muted text-end">
+                                    <i class="bi bi-chevron-right"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="list-group-item" data-bs-toggle="modal" data-bs-target="#change_username_modal">
+                        <div class="p-3">
+                            <div class="row">
+                                <div class="col-4 align-self-center">
+                                    Username
+                                </div>
+                                <div class="col-7 align-self-center" id="username_div">
+                                    <%= user.username %>
+                                </div>
+                                <div class="col-1 text-muted text-end">
+                                    <i class="bi bi-chevron-right"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="list-group-item" data-bs-toggle="modal" data-bs-target="#change_name_modal">
+                        <div class="p-3">
+                            <div class="row">
+                                <div class="col-4 align-self-center">
+                                    Name
+                                </div>
+                                <div class="col-7 align-self-center" id="name_div">
+                                    <%= `${user.first_name} ${user.last_name}` %> 
+                                    <%= %>
+                                </div>
+                                <div class="col-1 text-muted text-end">
+                                    <i class="bi bi-chevron-right"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Appearance -->
+            <div class="shadow rounded my-4" style="background-color: var(--secondary-body-background)">
+                <h3 class="p-3">Appearance</h3>
+                <ul class="list-group list-group-flush clickable" onclick="toggle_theme()">
+                    <li class="list-group-item">
+                        <div class="p-3">
+                            <div class="row">
+                                <div class="col-4 align-self-center">
+                                    Use Light Theme
+                                </div>
+                                <div class="col-8 text-muted align-self-center">
+                                    <div class="float-end">
+                                        <label class="switch">
+                                            <input type="checkbox" id="theme_toggle">
+                                            <span class="slider round"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Password -->
+            <div class="shadow rounded my-4" style="background-color: var(--secondary-body-background)">
+                <h3 class="p-3">Password</h3>
+                <ul class="list-group list-group-flush clickable">
+                    <li class="list-group-item" data-bs-toggle="modal" data-bs-target="#change_password_modal">
+                        <div class="p-3">
+                            <div class="row">
+                                <div class="col-4 align-self-center">
+                                    Password
+                                </div>
+                                <div class="col-7 align-self-center">
+                                    ●●●●●●●●
+                                </div>
+                                <div class="col-1 text-muted text-end">
+                                    <i class="bi bi-chevron-right"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Devices -->
+            <div class="row">
+                <div class="col-sm-12 col-md-6">
+                    <div class="shadow rounded my-4" style="background-color: var(--secondary-body-background)">
+                        <h3 class="p-3">Your Devices</h3>
+                        <ul class="list-group list-group-flush clickable">
+                            <% let sessions_array = locals.sessions != null ? locals.sessions : [] %>
+                            <% for(let i=0;i<Math.min(3, sessions_array.length);i++){ %>
+                                <% let session = sessions_array[i]; %>
+                                <li class="list-group-item" onclick="goto('/settings/sessions')">
+                                    <div class="p-3">
+                                        <div class="row">
+                                            <div class="col-3 col-sm-4 col-lg-3 align-self-center text-center">
+                                                <% if(session.device_type == "desktop") { %>
+                                                    <i class="bi bi-laptop" style="font-size: 64px"></i>
+                                                <% } else if(session.device_type == "phone") { %>
+                                                    <i class="bi bi-phone" style="font-size: 64px"></i>
+                                                <% } %>
+                                            </div>
+                                            <div class="col-9 col-sm-8 col-lg-9 align-self-center">
+                                                <h4 class="m-0"><%= session.device_os %></h4>
+                                                <p class="m-0 text-muted"><%= session.location %> - <span class="luxon-format-date" current-format="milliseconds" format="hh:mm a"><%= session.first_time_sign_in %></span></p>
+                                                <% if(session.this_device){ %>
+                                                <p><i class="bi bi-check-circle-fill pe-1"></i> This device</p>
+                                                <% } %>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </li>
+                            <% } %>
+                            <li class="list-group-item" onclick="goto('/settings/sessions')">
+                                <div class="p-3">
+                                    <div class="row">
+                                        <div class="col-12 align-self-center">
+                                            <h6 class="m-0 text-muted">Manage your devices</h6>
+                                        </div>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-sm-12 col-md-6">
+                    <div class="shadow rounded my-4" style="background-color: var(--secondary-body-background)">
+                        <h3 class="p-3">Options</h3>
+                        <ul class="list-group list-group-flush clickable">
+                            <li class="list-group-item" data-bs-toggle="modal" data-bs-target="#clear_watch_history_modal">
+                                <div class="p-3">
+                                    <div class="row">
+                                        <div class="col-12 align-self-center text-center">
+                                            Clear Watch History
+                                        </div>
+                                    </div>
+                                </div>
+                            </li>
+                            <li class="list-group-item" data-bs-toggle="modal" data-bs-target="#clear_time_watched_modal">
+                                <div class="p-3">
+                                    <div class="row">
+                                        <div class="col-12 align-self-center text-center">
+                                            Clear Time Watched
+                                        </div>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+</body>
+
+<!-- Upload Image Modal -->
+<div class="modal modal-custom fade" tabindex="-1" id="change_profile_pic_modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Upload Profile Picture</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="change_profile_pic_form">
+                <div class="modal-body">
+                    <div id="error_field" class="text-danger text-center mb-2"></div>
+                    <input accept="image/png, image/jpeg" name="profile_pic" type="file" id="profile_input" hidden/>
+                    <div class="text-center">
+                        <label for="profile_input" class="rounded-circle position-relative overflow-hidden" style="width:300px; height:300px; cursor:pointer;" id="profile_input_label">
+                            <img id="profile_temp_input" src="/img/blank_movie_backdrop.png" class="w-100 h-100 profile_pic" style="object-fit: cover;">
+                            <div class="overlay position-absolute w-100 h-100 top-0 start-0 rounded-circle">
+                            </div>
+                            <i class="bi bi-file-earmark-arrow-up fs-1 position-absolute top-50 start-50 translate-middle"></i>
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-custom">Upload</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Email Modal -->
+<div class="modal modal-custom fade" tabindex="-1" id="change_email_modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Change Email</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="change_email_form" novalidate>
+                <div class="modal-body">
+                    <div class="form-floating mb-3">
+                        <input autocomplete="off" type="email" class="form-control form-control-lg" name="email_input" id="email_input" placeholder="Email" value="<%= user.email %>">
+                        <label for="email_input">Email</label>
+                        <div class="valid-feedback"></div>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-custom">Save changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Username Modal -->
+<div class="modal modal-custom fade" tabindex="-1" id="change_username_modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Change Username</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="change_username_form" novalidate>
+                <div class="modal-body">
+                    <div class="form-floating mb-3">
+                        <input autocomplete="off" type="text" class="form-control form-control-lg" name="username_input" id="username_input" placeholder="Username" value="<%= user.username %>">
+                        <label for="username_input">Username</label>
+                        <div class="valid-feedback"></div>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-custom">Save changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Name Modal -->
+<div class="modal modal-custom fade" tabindex="-1" id="change_name_modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Change Name</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="change_name_form" novalidate>
+                <div class="modal-body">
+                    <div class="form-floating mb-3">
+                        <input autocomplete="off" type="text" class="form-control form-control-lg" name="first_name_input" id="first_name_input" placeholder="First Name" value="<%= user.first_name %>">
+                        <label for="first_name_input">First Name</label>
+                        <div class="valid-feedback"></div>
+                        <div class="invalid-feedback"></div>
+                    </div>
+
+                    <div class="form-floating mb-3">
+                        <input autocomplete="off" type="text" class="form-control form-control-lg" name="last_name_input" id="last_name_input" placeholder="Last Name" value="<%= user.last_name %>">
+                        <label for="last_name_input">Last Name</label>
+                        <div class="valid-feedback"></div>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-custom">Save changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Password Modal -->
+<div class="modal modal-custom fade" tabindex="-1" id="change_password_modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Change Password</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="change_password_form" novalidate>
+                <div class="modal-body">
+                    <div class="form-floating mb-3">
+                        <input autocomplete="off" type="password" class="form-control form-control-lg" name="current_password_input" id="current_password_input" placeholder="Current Password">
+                        <label for="current_password_input">Current Password</label>
+                        <div class="valid-feedback"></div>
+                        <div class="invalid-feedback"></div>
+                    </div>
+
+                    <div class="form-floating mb-3">
+                        <input autocomplete="off" type="password" class="form-control form-control-lg" name="new_password_input" id="new_password_input" placeholder="New Password">
+                        <label for="new_password_input">New Password</label>
+                        <div class="valid-feedback"></div>
+                        <div class="invalid-feedback"></div>
+                    </div>
+
+                    <div class="form-floating mb-3">
+                        <input autocomplete="off" type="password" class="form-control form-control-lg" name="confirm_new_password_input" id="confirm_new_password_input" placeholder="Confirm New Password">
+                        <label for="confirm_new_password_input">Confirm New Password</label>
+                        <div class="valid-feedback"></div>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-custom">Save changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Clear Watch History Modal -->
+<div class="modal modal-custom fade" tabindex="-1" id="clear_watch_history_modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <h5>Are you sure you want to clear your watch history?</h5>
+                <h5>This also clears your current time in each movie or show</h5>
+                <h6 class="text-muted">Note: This cannot be reverted</h6>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="submit" class="btn btn-danger" data-bs-dismiss="modal" onclick="clear_data('watch_history')">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Clear Time Watched Modal -->
+<div class="modal modal-custom fade" tabindex="-1" id="clear_time_watched_modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <h5>Are you sure you want to clear your time watched statistics?</h5>
+                <h6 class="text-muted">Note: This cannot be reverted</h6>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="submit" class="btn btn-danger" data-bs-dismiss="modal" onclick="clear_data('time_watched')">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+</html>

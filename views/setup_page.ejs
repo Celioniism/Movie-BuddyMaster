@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Set up page for movie buddy</title>
+    <link href="/css/set_up_page.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale1.0">
+    <!-- <style>
+        body {
+            background-color: black !important;
+        }
+    </style> -->
+    <%- include("snippets/header") %>
+</head>
+
+<body>
+    <div class="container shadow">
+        <div class="title">Set Up Page</div>
+        <form action="#">
+            <div class="user-details">
+                <div class="input-box">
+                    <span class="details">First Name</span>
+                    <input type="text" placeholder="Enter your first name" required>
+                </div>
+                <div class="input-box">
+                    <span class="details">Last Name</span>
+                    <input type="text" placeholder="Enter your last name" required>
+                </div>
+                <div class="input-box">
+                    <span class="details">Email</span>
+                    <input type="text" placeholder="Enter your email address" required>
+                </div>
+                <div class="input-box">
+                    <span class="details">API Key</span>
+                    <input type="text" placeholder="Enter the API key" required>
+                </div>
+                <div class="input-box">
+                    <span class="details">Mongodb URL</span>
+                    <input type="text" placeholder="Enter the URL" required>
+                </div>
+                <div class="input-box">
+                    <span class="details">Password</span>
+                    <input type="text" placeholder="Enter your password" required>
+                </div>
+            </div>
+            <div class="button">
+                <input type="submit" value="Set up Page">
+            </div>
+        </form>
+    </div>

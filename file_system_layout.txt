@@ -1,0 +1,27 @@
+#variable_name
+files will be represented with an extension
+folders will not have an extension
+[] brackets are examples
+
+- files
+    - movies
+        - #movie_id [12]
+            - movie_details.json
+            - #movie_id.mp4     [12.mp4]
+            - subtitles
+                #movie_id_#language_name_#language_code.ssa   [12_English_en.ssa];
+                #movie_id_#language_name_#language_code.vtt   [12_English_en.ssa];
+    - shows
+        -#show_id   [1429]
+            - show_details.json
+            - #season_num   [1]
+                - #episode_num   [3]
+                    - episode_details.json
+                    - #show_id_#season_#episode.mp4    [1429_1_3.mp4]
+                    - subtitles
+                        #show_id_#season_#episode_#language_name_#language_code.ssa   [1429_1_3_English_en.ssa];
+                        #show_id_#season_#episode_#language_name_#language_code.vtt   [1429_1_3_English_en.vtt];
+
+    - uploads
+    - images
+    - profile_images

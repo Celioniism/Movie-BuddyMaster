@@ -1,0 +1,150 @@
+<script>
+    const start_remote_select = async (event) => {
+        let $target = $(event.currentTarget);
+        let remove_file_selector_parent = $target.closest(".remote-file-selector");
+
+        let unique_id_attribute = randomString(32);//this makes it so you can find the remote-file-selector parent more easily
+        remove_file_selector_parent.attr("unique-file-selector-id", unique_id_attribute);
+
+        let modal_target = remove_file_selector_parent.attr("modal-target");
+        let callback = remove_file_selector_parent.attr("file-selected-callback");
+        let type = remove_file_selector_parent.attr("select-type");//either "single" or "multi"
+        let extensions = remove_file_selector_parent.attr("valid-extensions");//either "single" or "multi"
+
+        let modal = $(modal_target);
+        let modal_description = $(`${modal_target} .modal-body`);
+
+        let file_selector = bootstrap.Modal.getOrCreateInstance(modal);
+
+        let url_path = "/upload/files";
+        if(extensions != null){
+            url_path += "?";
+            let extensions_array = extensions.split(",");
+            for(let i=0;i<extensions_array.length;i++){
+                url_path += `extensions=${extensions_array[i].trim()}`;
+                if(i < extensions_array.length-1){
+                    url_path += "&";
+                }
+            }
+        }
+
+        let response = await fetch(url_path);
+        let json_array = await response.json();
+
+
+        //Build files description
+        let file_list = "<div class='clickable list-group list-group-flush'>";
+        if (json_array.length == 0) {
+            file_list += `<label class="text-center">No Files</label>`;
+        }
+
+        json_array.forEach(file => {
+            let DateTime = luxon.DateTime;
+
+            let uploaded_date = DateTime.fromJSDate(new Date(file.date_uploaded)).toLocal().toFormat("LLL dd, yyyy, h:mm a"); 
+            let file_size = formatBytes(file.file_size);
+            
+
+            file_list += `  <button class="list-group-item list-group-item-action" onclick="selectItemFunction(this, ${type == "multi"})" unique-attribute-id="${unique_id_attribute}" file-id="${file._id}" file-name="${file.name}" file-selected-callback="${callback == null ? "" : callback}">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h5 class="mb-1">${file.name}</h5>
+                                    <small class="text-muted">${file_size}</small>
+                                </div>
+                                <p class="mb-1">Original Name: ${file.original_file_name}</p>
+                                <small class="text-muted">${uploaded_date}</small>
+                            </button>
+                        `;
+        });
+
+        file_list += "</div>";
+        modal_description.html(file_list);
+
+        file_selector.show();
+    }
+    var selectItemFunction = function (button, multiselect) {
+        let jQueryButton = $(button);
+        if (multiselect == true) {
+            if (jQueryButton.hasClass("active")) {
+                jQueryButton.removeClass("active");
+            }
+            else {
+                jQueryButton.addClass("active");
+            }
+        }
+        else {
+            jQueryButton.siblings().removeClass("active");
+            jQueryButton.addClass("active");
+        }
+        // console.log(jQueryButton.attr("file-id"));
+    }
+    $(document).ready(() => {//This is called when the user hits a file item
+        //This function is called when the user has finished selecting their file(s) in the modal and when they finally hit the select button in the modal
+        $(".remote-file-selector .file-selector-select").click((event) => {
+            let $select_button = $(event.currentTarget);
+            let modal_target = $select_button.attr("modal-target");
+
+            let selected = $select_button.parent().parent().find(".modal-body").find(".active");
+            let selected_callback = selected.attr("file-selected-callback");
+
+            let unique_attribute_id;
+
+            let files = [];
+            selected.each((index, element) => {//get all of the files 
+                let file_id = $(element).attr("file-id");
+                let file_name = $(element).attr("file-name");
+                unique_attribute_id = $(element).attr("unique-attribute-id");
+                files.push({ file_id: file_id, file_name: file_name });
+            });
+
+            let remote_file_selector = $(`.remote-file-selector[unique-file-selector-id=${unique_attribute_id}]`);
+            remote_file_selector.removeAttr("unique-file-selector-id");
+
+
+            if (selected_callback && selected_callback.length != 0) {
+                window[selected_callback](files, remote_file_selector);
+            }
+        });
+
+        //This is the button that launches they file selector modal
+        $(".remote-file-selector .select-button").click(start_remote_select);
+    });
+    /* File Selector Modal Template Example
+        
+        //the button to open modal
+        //must provide class, [remote-file-selector]
+        //must provided attribute [modal-target], which contains the querySelector
+        //must provided attribute [file-selected-callback], which should be the function name
+        //the [select-type], meaning the user can only select a single file or multiple files
+        //the [valid-extensions], only show files with these extensions, (optional)
+        //must add class [select-button] to the button
+
+        <div class="remote-file-selector" modal-target="#file-selector-modal" file-selected-callback="mp4_file_selected" select-type="single">
+            <label>Select MP4 File</label>
+            <div class="input-group mb-3 input-group-lg">
+                <input type="text" class="form-control file-input-label" placeholder="Select File" aria-label="Selected File" aria-describedby="selected-file" id="select-mp4-label" readonly>
+                <button class="btn btn-custom select-button" type="button">Select</button>
+            </div>
+        </div>
+
+        
+        //Must include class [remote-file-selector]
+        //Must include class [file-selector-select] to Select button
+        <div class="modal fade remote-file-selector" id="file-selector-modal" tabindex="-1" aria-labelledby="file-selector-modal-title" aria-hidden="false" style="color: black">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="file-selector-modal-title">Select a file</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-custom file-selector-select" data-bs-dismiss="modal">Select</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    */
+</script>

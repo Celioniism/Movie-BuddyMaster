@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <%- include ("snippets/header") %>
+        <style>
+            .card {
+                background-color: var(--input-fields-bg-color);
+                color: var(--input-fields-text-color);
+            }
+        </style>
+</head>
+
+<body>
+    <%- include ("snippets/navbar") %>
+        <div class="p-5 mb-4 display-bg rounded-3 text-center">
+            <div class="container-fluid py-5">
+                <h1 class="display-3 fw-bold animate__animated animate__fadeInDown">About Us</h1>
+                <p class="fs-4 animate__animated animate__fadeInUp"> When you're looking for a specific movie or video, things can get messy and
+                    chaotic.<br>Movie Buddy can help you stay organized and enjoy your movies from the comfort of your
+                    bed!<br>
+                    Movie Buddy is the only server that allows you to upload all your favorite Movies or Shows in one
+                    place.
+                    <br>
+                    It also offers a way to organize and beautify the presentation of your Videos, Movies, or TV Shows.
+                </p>
+            </div>
+        </div>
+        <div class="container">
+            <h2 class="my-3 text-center animate__animated animate__fadeIn">Our Team</h2>
+            <% 
+                let team_members = [];
+                team_members.push({
+                    name: "Alan Tsui", 
+                    role: "Lead Developer", 
+                    description: "He is mainly responsbile for much of the backend coding as well as designing the UI/UX.", 
+                    email: "tsuia5@farmingdale.edu", 
+                    picture_link: "/img/profile/alan_pic.png"
+                });
+                team_members.push({
+                    name: "Faryal Alam", 
+                    role: "Front-end Developer",
+                    description: "Apart from creating the feedback page, she also created the About page.", 
+                    email: "alamf@farmingdale.edu", 
+                    picture_link: "/img/profile/faryal_pic.jpg"
+                });
+                team_members.push({
+                    name: "Saba Alam", 
+                    role: "Front-end Developer", 
+                    description: "Saba has created our wonderful Set-up page.", 
+                    email: "alams4@farmingdale.edu", 
+                    picture_link: "/img/profile/saba_pic.jpg"
+                });
+                team_members.push({
+                    name: "Chandni Ochani", 
+                    role: "Front-end Developer", 
+                    description: "Chandni has created our interactive Profile page.", 
+                    email: "ochac@farmingdale.edu", 
+                    picture_link: "/img/profile/chandni_pic.jpg"
+                });
+                team_members.push({
+                    name: "Christian Giubergia", 
+                    role: "Front-end Developer", 
+                    description: "Christian has created the backend, our beautiful Admin pages as well as a 404 Error page, in case you get lost looking for us!", 
+                    email: "giubca@farmingdale.edu", 
+                    picture_link: "/img/profile/chris_gif.gif"
+                });
+            %>
+
+            <div class="row justify-content-center g-2">
+                <% for(let member of team_members){ %>
+                    <div class="col-12 col-sm-12 col-md-6 col-lg-4 col-xl-4">
+                        <div class="card h-100 animate__animated animate__fadeIn">
+                            <img src="<%= member.picture_link %>" class="card-img-top" alt="...">
+                            <div class="card-body">
+                                <h5 class="card-title fw-bold fs-4"><%= member.name %></h5>
+                                <small class="text-muted fs-5"><%= member.role %></small>
+                                <p class="card-text"><%= member.description %></p>
+                                <p><%= member.email %></p>
+                            </div>
+                        </div>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+
+</body>
+
+</html>

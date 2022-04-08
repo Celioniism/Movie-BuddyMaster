@@ -1,0 +1,14 @@
+<% if(locals.title != null && title.length != 0){ %>
+    <h1 class="pr-3 pt-3 mb-0">
+        <%= title %>
+    </h1>
+<% } %>
+<div class="media-collection carousel">
+    <% let movies_array = locals.movies != null ? movies : [] %>
+    <% for(let i=0;i<movies_array.length;i++){ %>
+    <% let movie = movies_array[i] %>
+        <div class="carousel-cell z-index-controller">
+            <%- include("movie_poster", {movie: movie, hide_dropdown: locals.hide_dropdown}) %>
+        </div>
+    <% } %>
+</div>

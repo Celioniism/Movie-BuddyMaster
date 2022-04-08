@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <%- include ("snippets/header") %>
+</head>
+<body>
+    <%- include ("snippets/navbar") %>
+
+    <h1 class="px-3">My List</h1>
+    <% let list = locals.my_list != null ? my_list : [] %>
+    <div class="my-list my-list-grid">
+        <div class="px-3 pt-4">
+            <%- include("snippets/movie_grid", {movies: list}) %>
+        </div>
+    </div>
+</body>
+</html>

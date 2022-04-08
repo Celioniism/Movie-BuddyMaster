@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html class="h-100">
+
+<head>
+    <%- include ("snippets/header") %>
+        <style>
+            #parallax {
+                position: relative;
+                width: 100%;
+                height: 100vh;
+                background-image: url(https://raw.githubusercontent.com/oscicen/oscicen.github.io/master/img/depth-3.png), url(https://raw.githubusercontent.com/oscicen/oscicen.github.io/master/img/depth-2.png), url(https://raw.githubusercontent.com/oscicen/oscicen.github.io/master/img/depth-1.png);
+                background-repeat: no-repeat;
+                background-position: center;
+                background-position: 50% 50%;
+            }
+
+            .heading {
+                position: absolute;
+                top: 47%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                color: #fff;
+                font-family: "Arial";
+                text-transform: uppercase;
+                opacity: .2;
+                font-size: 70px;
+            }
+        </style>
+</head>
+<body class="h-100">
+    <nav class="navbar fixed-top">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">Movie Buddy</span>
+        </div>
+    </nav>
+        <div class="row h-100">
+            <div class="col-8 shadow">
+                sf
+            </div>
+            <div class="col-4 h-100">
+                <form id="first_time_form" class="shadow my-auto animate__animated animate__fadeInRight" novalidate>
+                    <h1 class="display-4 text-center my-5">Setup</h1>
+                    <div class="form-floating mb-3">
+                        <input type="email" class="form-control form-control-lg" name="email_input" id="email_input" placeholder="Email">
+                        <label for="email_input">Email</label>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control form-control-lg" name="first_name_input" id="first_name_input" placeholder="First Name">
+                        <label for="first_name_input">First Name</label>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control form-control-lg" name="last_name_input" id="last_name_input" placeholder="Last Name">
+                        <label for="last_name_input">Last Name</label>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="form-floating mb-3">
+                        <input type="password" class="form-control form-control-lg" name="password_input" id="password_input" aria-describedby="password_input" placeholder="Password">
+                        <label for="password_input">Password</label>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="form-floating mb-3">
+                        <input type="password" class="form-control form-control-lg" name="password_confirm_input" id="password_confirm_input" aria-describedby="confirm_password_input" placeholder="Confirm Password">
+                        <label for="password_confirm_input">Confirm Password</label>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control form-control-lg" name="invite_code_input" id="invite_code_input" placeholder="Invite Code">
+                        <label for="invite_code_input">Invite Code</label>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <button id="register_button" type="submit" class="btn btn-custom w-100 btn-lg">Register</button>
+                </form>
+            </div>
+        </div>
+
+</body>
+<script>
+    
+/**
+ * Welcome to Movie Buddy!
+ * 
+ * It seems like you are the first one here!
+ * 
+ * Let me help you get started!
+ * 
+ * Enter you information to the right of the screen and
+ */
+</script>
+</html>
+

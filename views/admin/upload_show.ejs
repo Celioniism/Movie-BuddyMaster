@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <%- include ("../snippets/header") %>
+</head>
+<script>
+    let selected_show_detail;
+    async function display_show_info(search_id, search_type) {
+        const response = await fetch(`/api/show/${search_id}`);
+
+        //this show is from the movie database
+        let show = null;
+        try {
+            show = await response.json(); //extract JSON from the http response
+
+        } catch (err) {
+            console.log(err);
+        }
+
+        if(show == null){
+            return;
+        }
+
+        let id = show.id;
+
+        let poster_path = "/img/blank_movie_poster.png";
+        if (show.frontpage != null) {
+            poster_path = `https://www.themoviedb.org/t/p/original${show.frontpage}`;
+        }
+
+        let backdrop_path = "/img/blank_movie_backdrop.png";
+        if (show.backdrop != null) {
+            backdrop_path = `https://www.themoviedb.org/t/p/original${show.backdrop}`;
+        }
+
+        let title_field = $("#floating_title");
+        let description_field = $("#floating_overview");
+        // let genres_field = $("#floating_genres");
+        let ratings_field = $("#floating_ratings");
+        let poster_field = $("#poster_button img");
+        let backdrop_field = $("#backdrop_button img");
+        // let logo_field = $("#logo_button img");
+
+        title_field.val(show.title);
+        description_field.val(show.description);
+        // genres_field.val(show.genres);
+        ratings_field.val(show.rating);
+
+        poster_field.attr("src", poster_path);
+        backdrop_field.attr("src", backdrop_path);
+        // logo_field.attr("src", logo_path);
+
+        selected_show_detail = show;
+
+        $(".search-form input").val("");
+
+        fill_all_episode_collapse();
+    }
+
+    /**
+     * 
+     */
+    async function fill_all_episode_collapse(){
+        let all_collapse_headers = $("#episode-list tr.hoverable");
+        all_collapse_headers.each((index, element) => {
+            let file_id = $(element).attr("file-id");
+            refresh_episode_collapse(file_id);
+        });
+
+    }
+
+    /**
+     * Updates the data to match the details in The Movie Database
+     */
+    function refresh_episode_collapse(file_id){
+        let selector = `#episode_collapse_${file_id}`;
+        let collapse = $(selector);
+        
+        let season_field = collapse.find(`#floating_season_${file_id}`);
+        let episode_field = collapse.find(`#floating_episode_${file_id}`);
+        let num_of_ep_field = collapse.find(`#floating_num_ep_${file_id}`);
+
+        let season = season_field.val();
+        let episode = episode_field.val();
+        let num_of_ep = num_of_ep_field.val();
+
+        season = isInt(season) ? season : "--";
+        episode = isInt(episode) ? episode : "--";
+        num_of_ep = isInt(num_of_ep) ? num_of_ep : 1;
+
+        fill_episode_collapse(selector, file_id, season, episode, num_of_ep);
+    }
+
+    /**
+     * This fills in a specific episodes details
+     * @param selector the collapse selector
+     * @param file_id The file id
+     * @param season the season of the episode
+     * @param episode the episode of the episode
+     * @param num_of_ep the number of episodes within this one mp4 file
+     */
+    async function fill_episode_collapse(selector, file_id, season, episode, num_of_ep=1){
+        if(selected_show_detail == null){
+            return;
+        }
+        let episode_collapse = $(selector);
+        let title_field = episode_collapse.find(`#floating_title_${file_id}`);
+        let overview_field = episode_collapse.find(`#floating_overview_${file_id}`);
+        let release_date_field = episode_collapse.find(`#floating_release_${file_id}`);
+        let backdrop_field = episode_collapse.find(`#episode_image_${file_id}`);
+
+        let cur_ep = parseInt(episode);
+        let title_string = "";
+        let overview_string = "";
+        let release_string = "";
+        let backdrop_image = null;
+
+        for(let i=0;i<num_of_ep;i++){
+            const episode_details_response = await fetch(`/api/episode/${selected_show_detail.id}/${season}/${cur_ep+i}`);
+            const episode_images_response = await fetch(`/api/episode/images/${selected_show_detail.id}/${season}/${cur_ep+i}`);
+
+            //this episode is from the movie database
+            let episode_object = null;
+            let image_object = null;
+
+            try {
+                episode_object = await episode_details_response.json(); //extract JSON from the http response
+                image_object = await episode_images_response.json(); //extract JSON from the http response
+            } catch (err) {
+                console.log(err);
+            }
+
+            if(episode_object == null){
+                return;
+            }
+            
+            if(backdrop_image == null){
+                let stills = image_object.stills;
+                backdrop_image = stills != null ? stills[0].file_path : null;
+            }
+
+            title_string += episode_object.title != null ? episode_object.title : "";
+            overview_string += episode_object.description != null ? episode_object.description : "";
+            release_string += episode_object.release != null ? episode_object.release : "";
+            if(num_of_ep > 1 && i < num_of_ep - 1){
+                title_string += " / ";
+                overview_string += " / ";
+                release_string += " / ";
+            }
+        }
+
+        if(backdrop_image == null){
+            backdrop_image = "/img/blank_movie_backdrop.png";
+        }
+        else{
+            backdrop_image = `https://www.themoviedb.org/t/p/original${backdrop_image}`;
+        }
+
+        title_field.val(title_string);
+        overview_field.val(overview_string);
+        release_date_field.val(release_string);
+        backdrop_field.attr("src", backdrop_image);
+    }
+
+    function delete_episode(file_id){
+        $(`#episode_${file_id}, #episode_collapse_row_${file_id}`).remove();
+    };
+
+    async function episode_files_selected(files, target){
+        if(files){
+            for(let file of files){
+                let id = file.file_id;
+                let file_name = file.file_name;
+                if($(`#episode_${id}`).length > 0){
+                    continue;
+                }
+
+                //This regex finds the season and episode
+                let pattern = /S\w*\s*([0-9]?\d)\s*E\w*\s*([0-9]?\d)/i;//TODO: allow custom pattern
+
+                let regex_match = file_name.match(pattern);
+
+                let season = "--";
+                let episode = "--";
+                let num_of_ep = 1;
+                if(regex_match != null){
+                    season = regex_match[1];
+                    episode = regex_match[2];
+                }
+
+                let episode_row = `<tr class="hoverable" id="episode_${id}" file-id="${id}">
+                            <td data-bs-toggle="collapse" data-bs-target="#episode_collapse_${id}">${file_name}</td>
+                            <td data-bs-toggle="collapse" data-bs-target="#episode_collapse_${id}">
+                                <h5>S: <b>${season}</b> Ep: <b>${episode}</b></h5>
+                            </td>
+                            <td>
+                                <button class="btn btn-custom" id="episode_trash_${id}" onclick="delete_episode('${id}')"><i class="bi bi-trash"></i></button>
+                            </td>
+                        </tr>
+                        <tr id="episode_collapse_row_${id}">
+                            <td colspan="3" class="p-0">
+                                <!-- Episode Information Collapse -->
+                                <div class="collapse shadow-inset" id="episode_collapse_${id}">
+                                    <div class="p-2">
+                                        <div class="row g-3">
+                                            <div class="col-sm-12 col-md-4 mb-2">
+                                                <!-- Episode Backdrop Image Section -->
+                                                <h3 class="p-1">Episode Image</h3>
+                                                <a class="btn shadow-none p-0 mx-0 image-button" role="button">
+                                                    <div class="poster-container">
+                                                        <div class="img-container">
+                                                            <img id="episode_image_${id}" class="w-100" src="/img/blank_movie_backdrop.png" />
+                                                        </div>
+                                                        <div class="colored-background"></div>
+                                                        <div class="border-glow"></div>
+                                                        <div class="overlay-components">
+                                                            <i class="bi bi-download centered fs-1" style="color:white"></i>
+                                                        </div>
+                                                    </div>
+                                                </a>
+                                            </div>
+                                            <div class="col-sm-12 col-md-8 mb-2">
+                                                <!-- Episode Details Section -->
+                                                <div class="mb-3">
+                                                    <h3 class="p-1 d-inline align-middle">Episode Details</h3>
+                                                    <button 
+                                                        onclick="refresh_episode_collapse('${id}')"
+                                                        class="btn btn-custom mx-2" 
+                                                        type="button" 
+                                                        data-bs-toggle="tooltip" 
+                                                        data-bs-placement="top" title="Gets the episode information based on the season, episode, and number of episodes provided below">
+                                                        <i class="bi bi-arrow-clockwise"></i>
+                                                    </button>
+                                                </div>
+                                                <div class="row g-2">
+                                                    <div class="col-4">
+                                                        <div class="form-floating mb-2">
+                                                            <input type="number" min="0" class="form-control" id="floating_season_${id}" placeholder="Season" value="${season == "--" ? "" : season}">
+                                                            <label for="floating_season_${id}">Season</label>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-4">
+                                                        <div class="form-floating mb-2">
+                                                            <input type="number" min="0" class="form-control" id="floating_episode_${id}" placeholder="Episode" value="${episode == "--" ? "" : episode}">
+                                                            <label for="floating_episode_${id}">Episode</label>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-4" data-bs-toggle="tooltip" data-bs-placement="top" title="The number of episodes that are in this file">
+                                                        <div class="form-floating mb-2">
+                                                            <input type="number" min="1" class="form-control" id="floating_num_ep_${id}" placeholder="# of Episodes" value="${num_of_ep}">
+                                                            <label for="floating_num_ep_${id}"># of Episodes</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="form-floating mb-2">
+                                                    <input type="text" class="form-control" id="floating_title_${id}" placeholder="Title" value="">
+                                                    <label for="floating_title_${id}">Title</label>
+                                                </div>
+                                                <div class="form-floating mb-2">
+                                                    <textarea class="form-control" id="floating_overview_${id}" placeholder="Overview" style="height: 100px"></textarea>
+                                                    <label for="floating_overview_${id}">Overview</label>
+                                                </div>
+                                                <div class="form-floating mb-2">
+                                                    <input type="text" class="form-control" id="floating_release_${id}" placeholder="Release Date" value="" readonly>
+                                                    <label for="floating_release_${id}">Release Date</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-12">
+                                                <!-- Episode Subtitle Selector -->
+                                                <div class="remote-file-selector" modal-target="#file-selector-modal" file-selected-callback="episode_subtitle_selected" select-type="multi" valid-extensions="vtt, ssa, ass">
+                                                    <h3 class="d-inline p-1 align-middle">Episode Subtitles</h3>
+                                                    <button class="btn btn-custom select-button mx-3" type="button" onclick='start_remote_select(event)'>Select</button>
+                                                    <table class="table mt-2">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>File Name</th>
+                                                                <th>Language Name</th>
+                                                                <th>Language Code</th>
+                                                                <th>Options</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>`;
+                
+                let episodes_table = $("table", target).first();
+                $(episode_row).appendTo(episodes_table).hide().fadeIn(500);
+                $(`#episode_collapse_${id}`).find("[data-bs-toggle='tooltip']").tooltip();
+
+                if(season != "--" && episode != "--"){
+                    fill_episode_collapse(`#episode_collapse_${id}`, id, season, episode, 1);
+                }
+            }
+        }
+    }
+
+    function clear_values(){
+        selected_show_detail = null;
+
+        $("#floating_title").val("");
+        $("#floating_overview").val("");
+        $("#floating_ratings").val("");
+        $("#poster_image").attr("src", "/img/blank_movie_poster.png");
+        $("#backdrop_image").attr("src", "/img/blank_movie_backdrop.png");
+        $("#logo_image").attr("src", "/img/blank_movie_backdrop.png");
+        $("#episode-list tbody").html("");
+    }
+
+    function final_submit(submit_button){
+        if(selected_show_detail == null){
+            console.log("A show must be selected");
+            return;
+        }
+
+        let episodes_array = [];
+        let episode_rows = $("#episode-list tr.hoverable").each((index, element) => {
+            episodes_array.push(read_episode_row(element));
+        });
+
+        let $submit_button = $(submit_button);
+        $submit_button.prop("disabled", true);
+        $submit_button.html(`<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...`);
+
+        selected_show_detail.title = $("#floating_title").val();
+        selected_show_detail.description = $("#floating_overview").val();
+        selected_show_detail.rating = $("#floating_ratings").val();
+        selected_show_detail.frontpage = $("#poster_image").attr("src");
+        selected_show_detail.backdrop = $("#backdrop_image").attr("src");
+        selected_show_detail.logo = $("#logo_image").attr("src");
+
+        let post_details = {
+            selected_show: selected_show_detail,
+            episodes: episodes_array
+        }
+
+        $.post("/upload/show/send", post_details, function (resp) {
+            console.log(resp);
+            if(resp.success){
+                clear_values();
+            }
+            $submit_button.prop("disabled", false);
+            $submit_button.text("Submit");
+        });
+    }
+
+    function read_all_episode_rows(){
+        let episode_rows = $("#episode-list tr.hoverable").each((index, element) => {
+            console.log(read_episode_row(element));
+        });
+    }
+
+    /**
+     * Reads all the inputs from an episode row
+     * @param element  provide a dom element of the episode row
+     * @returns an object with episode details
+     */
+    function read_episode_row(element){
+        let $episode_row = $(element);
+        let file_id = $episode_row.attr("file-id");
+
+        let episode_collapse_id = `#episode_collapse_${file_id}`;
+        let episode_backdrop_id = `#episode_image_${file_id}`;
+
+        let episode_season_id = `#floating_season_${file_id}`;
+        let episode_episode_id = `#floating_episode_${file_id}`;
+        let episode_num_of_episodes_id = `#floating_num_ep_${file_id}`;
+
+        let episode_title_id = `#floating_title_${file_id}`;
+        let episode_description_id = `#floating_overview_${file_id}`;
+
+        let episode_subtitle_table = `${episode_collapse_id} .remote-file-selector table`;
+
+        let backdrop_url = $(episode_backdrop_id).attr("src");
+        let season = $(episode_season_id).val();
+        let episode = $(episode_episode_id).val();
+        let title = $(episode_title_id).val();
+        let description = $(episode_description_id).val();
+
+        let subtitles_array = [];
+
+        $(`${episode_subtitle_table} tbody tr`).each((index, element) => {
+            let $subtitle_element = $(element);
+            let subtitle_file_id = $subtitle_element.attr("file-id");
+
+            let subtitle_language_name_id = `#floating_language_name_${subtitle_file_id}`;
+            let subtitle_language_code_id = `#floating_language_code_${subtitle_file_id}`;
+
+            let subtitle_language_name = $(subtitle_language_name_id).val();
+            let subtitle_language_code = $(subtitle_language_code_id).val();
+
+            subtitles_array.push({
+                subtitle_file_id: subtitle_file_id,
+                language_name: subtitle_language_name,
+                language_code: subtitle_language_code
+            });
+        });
+
+        let episode_object = {
+            file_id: file_id,
+            show_id: selected_show_detail.id,
+            backdrop: backdrop_url,
+            season: season,
+            episode: episode,
+            title: title,
+            description: description,
+            subtitles: subtitles_array
+        };
+
+        return episode_object;
+    }
+
+    function episode_subtitle_selected(files, target){
+        if(files){
+            for(let file of files){
+                let id = file.file_id;
+                let name = file.file_name;
+                if($(`#subtitle_${id}`).length > 0){
+                    continue;
+                }
+                let row = 
+                `   <tr id="subtitle_${id}" file-id="${id}">
+                        <td class="align-middle">${name}</td>
+                        <td class="align-middle">
+                            <div class="form-floating">
+                                <input type="email" class="form-control" id="floating_language_name_${id}" placeholder="Language Name">
+                                <label for="floating_language_name_${id}">Language Name</label>
+                            </div>
+                        </td>
+                        <td class="align-middle">
+                            <div class="form-floating">
+                                <input type="email" class="form-control" id="floating_language_code_${id}" placeholder="Language Code">
+                                <label for="floating_language_code_${id}">Language Code</label>
+                            </div>
+                        </td>
+                        <td class="align-middle">
+                            <button type="button" class="btn btn-custom d-block mx-auto" onclick="$(this).parents('#subtitle_${id}').remove()">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>`;
+                    
+                let subtitle_table = $("table", target).first();
+                $(row).appendTo(subtitle_table).hide().fadeIn(500);
+            }
+        }
+    }
+</script>
+<body>
+    <%- include ("../snippets/navbar") %>
+    <div class="container">
+        <h1 class="display-1 py-5">Show Upload</h1>
+        
+        <!-- File Uploading -->
+        <div class="mb-2">
+            <h3 class="m-0">Select the files to be uploaded</h3>
+            <div class="text-muted"> (files supported: mp4, vtt, ssa)</div>
+        </div>
+        <form class="input-group custom-file-upload input-group-lg" progress-id="#upload_progress" upload-failed-modal="#upload-failed">
+            <input type="text" class="form-control file-upload-field" placeholder="No file selected" readonly disabled>
+            <label for="file-upload-input" class="btn btn-custom selected_files_label">
+                Select files
+            </label>
+            <button class="btn btn-custom" type="submit">Upload</button>
+            <input id="file-upload-input" name="movie_uploads" type="file" multiple />
+        </form>
+        <div class="progress my-1 d-none">
+            <div id="upload_progress" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%">0%</div>
+        </div>
+        
+        <hr>
+
+        <!-- Search Section -->
+        <h3>Search for show details</h3>
+        <div class="form-floating mb-3 search-form">
+            <input type="text" class="form-control search-input" placeholder="Search" search-callback="display_show_info" search-url="/api/show/search/" search-type="api">
+            <label for="floating_search">Search</label>
+            <div class="dropdown">
+                <div class="search_dropdown dropdown-menu scrollable-menu"></div>
+            </div>
+        </div>
+
+        <hr>
+        <div class="row">
+            <!-- Show Posters Section -->
+            <div class="col-sm-12 col-md-4 col-lg-4 col-xl-4 mb-2">
+                <div class="mb-2">
+                    <h3 class="">Poster Image</h3>
+                    <a class="btn shadow-none px-0 mx-0 image-button p-0" role="button" id="poster_button">
+                        <div class="poster-container">
+                            <div class="img-container">
+                                <img id="poster_image" class="w-100" src="/img/blank_movie_poster.png" />
+                            </div>
+                            <div class="colored-background"></div>
+                            <div class="border-glow"></div>
+                            <div class="overlay-components">
+                                <i class="bi bi-download centered fs-1" style="color:white"></i>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-8 col-lg-8 col-xl-8">
+                <div class="row">
+                    <div class="col-sm-12 col-md-6 mb-2">
+                        <h3 class="">Backdrop Image</h3>
+                        <a class="btn shadow-none px-0 mx-0 image-button" role="button" id="backdrop_button">
+                            <div class="poster-container">
+                                <div class="img-container">
+                                    <img id="backdrop_image" class="w-100" src="/img/blank_movie_backdrop.png" />
+                                </div>
+                                <div class="colored-background"></div>
+                                <div class="border-glow"></div>
+                                <div class="overlay-components">
+                                    <i class="bi bi-download centered fs-1" style="color:white"></i>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-sm-12 col-md-6 mb-2">
+                        <h3 class="">Logo Image</h3>
+                        <a class="btn shadow-none px-0 mx-0 image-button" role="button" id="logo_button">
+                            <div class="poster-container">
+                                <div class="img-container">
+                                    <img id="logo_image" class="w-100" src="/img/blank_movie_backdrop.png" />
+                                </div>
+                                <div class="colored-background"></div>
+                                <div class="border-glow"></div>
+                                <div class="overlay-components">
+                                    <i class="bi bi-download centered fs-1" style="color:white"></i>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+                <!-- Show Details -->
+                <h3 class="">Show Details</h3>
+                <div class="form-floating mb-2">
+                    <input type="text" class="form-control" id="floating_title" placeholder="Title">
+                    <label for="floating_title">Title</label>
+                </div>
+                <div class="form-floating mb-2">
+                    <textarea class="form-control" id="floating_overview" placeholder="Overview" style="height: 100px"></textarea>
+                    <label for="floating_overview">Overview</label>
+                </div>
+                <!-- <div class="form-floating mb-2">
+                    <input type="text" class="form-control" id="floating_genres" placeholder="Genres">
+                    <label for="floating_genres">Genres</label>
+                </div> -->
+                <div class="form-floating mb-2">
+                    <input type="text" class="form-control" id="floating_ratings" placeholder="Ratings">
+                    <label for="floating_ratings">Rating</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-end">
+            <button class="btn btn-success text-end" onclick="final_submit()">Final Submit</button>
+        </div>
+
+        <hr>
+
+
+        <!-- Episodes List -->
+        <div class="remote-file-selector" modal-target="#file-selector-modal" file-selected-callback="episode_files_selected" select-type="multi" valid-extensions="mp4, png">
+            <!-- Season Selector WIP -->
+            <div class="input-group">
+                <h4 class="ms-2 d-inline align-middle">Episodes List</h4>
+                <button class="d-inline btn btn-custom select-button mx-3" type="button">Select</button>
+                <select class="d-inline rounded custom-select" style="max-width:200px">
+                    <option value="1">Season 1</option>
+                    <option value="2">Season 2</option>
+                    <option value="3">Season 3</option>
+                </select>
+            </div>
+            <div class="row">
+                <div class="table-responsive">
+                    <table class="table table-responsive table-striped" id="episode-list">
+                        <thead>
+                            <tr>
+                                <th scope="col">File Name</th>
+                                <th scope="col">Episode Details</th>
+                                <th scope="col">Options</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- File Selector Modal -->
+    <div class="modal modal-custom fade remote-file-selector" id="file-selector-modal" tabindex="-1" aria-labelledby="file-selector-modal-title" aria-hidden="false" style="color: black">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="file-selector-modal-title">Select a file</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-custom file-selector-select" data-bs-dismiss="modal">Select</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <%- include("../snippets/remote_select") %>
+    <%- include("../snippets/file_uploader") %>
+</body>
+</html>

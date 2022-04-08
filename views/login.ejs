@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html class="h-100">
+
+<head>
+    <%- include("snippets/header") %>
+</head>
+
+<body class="h-100">
+    <nav class="navbar fixed-top">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">Movie Buddy</span>
+        </div>
+    </nav>
+    <div class="container d-flex justify-content-center h-100">
+        <form id="login_form" class="shadow p-5 my-auto animate__animated animate__fadeInUp" novalidate>
+            <h1 class="display-4 text-center my-5">Login</h1>
+            <div class="form-floating mb-3">
+                <input type="email" class="form-control form-control-lg" name="email_input" id="email_input" placeholder="Email" required>
+                <label for="email_input">Email</label>
+                <div class="invalid-feedback"></div>
+            </div>
+            <div class="form-floating mb-3">
+                <input type="password" class="form-control form-control-lg" name="password_input" id="password_input" placeholder="Password" required>
+                <label for="email_input">Password</label>
+                <div class="invalid-feedback"></div>
+            </div>
+            <div class="mb-3">
+                <a class="text-decoration-none" href="/register">Register</a>
+            </div>
+            <button id="login_button" type="submit" class="btn btn-custom w-100 btn-lg">Login</button>
+        </form>
+    </div>
+</body>
+
+<script>    
+    $(function () {
+        let form = $('#login_form');
+        let form_inputs = $("#login_form input");
+        let submit_button = $("#login_button");
+        let post_url  = '/login/send';
+        let submitting_string = "Logging In...";
+        let regular_button_name = "Login";
+
+        form.submit(function (event) {
+            //Stops browser from navigating away from page
+            event.preventDefault();
+
+            //converts the fields into a json format
+            var data = form.serialize();
+
+            //disable the login button and adds a spinner
+            submit_button.prop("disabled", true);
+            submit_button.html(`<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ${submitting_string}`);
+
+            //sends the data to the server
+            $.post(post_url, data, function (resp) {
+                let successful_result = resp["success"];
+                let redirection_url = successful_result != null ? successful_result["redirect"] : "/";
+                let fields_returned = Object.keys(resp).filter(key => key != "success");
+
+                //find all input elements and iterate through all of them
+                form_inputs.each((index, element) => {
+                    //get one of the elements through jQuery
+                    let $element = $(element);
+
+                    //get the id of the element
+                    let id = $element.attr("id");
+
+                    //checks the fields returned to see if there is an error or success
+                    if (fields_returned.includes(id)) {
+                        let field_object = resp[id];
+
+                        let error_div = $(`#${id} ~ div[class=invalid-feedback]`);
+                        let input_field = $(`#${id}`);
+
+                        if (field_object["success"] == true) {
+                            input_field.addClass("is-valid");
+                            input_field.removeClass("is-invalid");
+                        }
+                        else {
+                            input_field.addClass("is-invalid");
+                            input_field.removeClass("is-valid");
+                            error_div.text(field_object["reason"]);
+                        }
+                    }
+                    else {
+                        $element.removeClass("is-invalid is-valid");
+                    }
+                });
+
+                //if the registration was successful, redirect the user to the home page
+                if (successful_result != null && successful_result["success"] == true) {
+                    form.removeClass("animate__fadeInUp");
+                    form.addClass("animate__fadeOutDown");
+                    form.on("animationend", () => {
+                        window.location.replace(redirection_url);
+                    });
+                }
+                else{
+                    //re-enables the register button 
+                    submit_button.prop("disabled", false);
+                    submit_button.text(regular_button_name);
+                }
+            });
+        });
+    });
+
+</script>
+
+</html>

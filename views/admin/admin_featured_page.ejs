@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <%- include ("../snippets/header") %>
+</head>
+<script>
+    function post_add_featured(id, type) {
+        let data = {
+            id: id,
+            type: type
+        }
+        $.post("/admin/featured/add", data, function (resp) {
+            let successful_result = resp;
+            let featured_object = successful_result.media;
+            if(successful_result != null && successful_result["success"] == true){
+                insert_featured(featured_object);
+            }
+            else{
+                console.log(successful_result.reason);
+            }
+        });
+    }
+
+    function post_remove_featured(target, id, type) {
+        let data = {
+            id: id,
+            type: type
+        }
+        $.post("/admin/featured/remove", data, function (resp) {
+            let successful_result = resp;
+            if(successful_result != null && successful_result["success"] == true){
+                let $target_parent = $(target).parents(".featured-item");
+                $target_parent.fadeOut(400, () => {
+                    $target_parent.remove();
+                })
+            }
+        });
+    }
+
+    function insert_featured(featured_object) {
+        if (featured_object == null) {
+            return;
+        }
+        let id = featured_object.id;
+        let type = featured_object.type;
+        let poster_url = `/images/${featured_object.backdrop}`;
+
+        let poster_html = `
+                <div class="col-12 col-sm-12 col-md-6 col-lg-6 col-xl-4 featured-item">
+                    <a class="btn shadow-none p-0 m-0 image-button auto-size" role="button">
+                        <div class="poster-container">
+                            <div class="img-container">
+                                <img src="${poster_url}" />
+                            </div>
+                            <div class="colored-background"></div>
+                            <div class="border-glow"></div>
+                            <div class="overlay-components">
+                                <button class="btn btn-danger rounded-pill centered" onclick="post_remove_featured(this, '${id}', '${type}')"><i class="bi bi-trash"></i> Remove</button>
+                            </div>
+                        </div>
+                    </a>
+                </div>`;
+
+        $(poster_html).appendTo("#featured").hide().fadeIn(500);
+    }
+</script>
+<body>
+    <%- include ("../snippets/navbar") %>
+        <div class="container">
+            <h1 class="display-1 py-5">Featured</h1>
+
+            <!-- Search Form -->
+            <div class="form-floating mb-3 search-form">
+                <input type="text" class="form-control search-input" placeholder="Search" search-callback="post_add_featured" search-url="/search_media" , search-type="remote">
+                <label for="floating_search">Search</label>
+
+                <div class="dropdown">
+                    <div class="search_dropdown dropdown-menu scrollable-menu"></div>
+                </div>
+            </div>
+
+            <h3>Currently Featured</h3>
+            <!-- Featured Section -->
+            <div class="row g-2" id="featured">
+
+            </div>
+
+        </div>
+        <script>
+            async function show_featured() {
+                const response = await fetch(`/admin/featured/list`);
+
+                try {
+                    const featured = await response.json(); //extract JSON from the http response
+                    for(let feature of featured){
+                        insert_featured(feature);
+                    }
+                } catch (err) {
+                    console.log(err);
+                }
+            }
+
+            show_featured();
+        </script>
+</body>
+</html>

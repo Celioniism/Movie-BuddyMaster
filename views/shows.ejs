@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <%- include ("snippets/header") %>
+</head>
+<script>
+    $(function () {
+        initialize_media_collection_flickity();
+    });
+</script>
+<body>
+    <%- include ("snippets/navbar") %>
+    <% let shows=locals.shows !=null ? locals.shows : {} %>
+    <% let show_keys=Object.keys(shows); %>
+    <% show_keys.sort() %>
+
+    <h1 class="px-3 display-4">Shows</h1>
+    <% for(let key of show_keys){ %>
+        <% let shows_in_genre=shows[key] %>
+        <div class="px-3">
+            <%- include("snippets/movie_row", {title: key, movies: shows_in_genre}) %>
+        </div>
+    <% } %>
+</body>
+</html>

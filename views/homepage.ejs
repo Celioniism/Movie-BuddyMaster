@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <%- include ("snippets/header") %>
+</head>
+
+<style>
+    #feature_carousel .carousel,
+    #feature_carousel .carousel-cell,
+    #feature_carousel .carousel-cell img:not(.logo_img){
+        width: 100%;
+    }
+
+    .bottom-gradient {
+        position: absolute;
+
+        width: 100%;
+        height: 60%;
+        left: 0px;
+        bottom: 0px;
+        background: rgb(0, 0, 0);
+        background: linear-gradient(0deg, var(--body-background) 0%, rgba(0, 0, 0, 0) 100%);
+    }
+
+    .components {
+        position: absolute;
+
+        width: 100%;
+        height: 100%;
+        left: 0px;
+        bottom: 0px;
+    }
+
+    .featured-title {
+        font-size: 7vw;
+        -webkit-text-fill-color: var(--text-color); /* Will override color (regardless of order) */
+        -webkit-text-stroke-width: .05vw;
+        -webkit-text-stroke-color: var(--opposite-text-color);
+    }
+</style>
+
+<script>
+    $(document).ready(function () {
+        $('#feature_carousel').flickity({
+            autoPlay: 5000,
+            groupCells: true,
+            cellAlign: "left",
+            contain: true,
+            resize: true,
+            percentPosition: false,
+            prevNextButtons: false,
+            pageDots: false,
+            imagesLoaded: true,
+            wrapAround: true
+        });
+    });
+
+    $(function () {
+        initialize_media_collection_flickity();
+    })
+</script>
+<style>
+</style>
+
+<body>
+    <%- include ("snippets/navbar") %>
+
+        <div id="feature_carousel" class="carousel">
+            <% let features=locals.featured==null ? [] : locals.featured %>
+            <% for(let feature of features){ %>
+                <div class="carousel-cell">
+                    <div class="bottom-gradient"></div>
+                    <div class="components h-100">
+                        <div style="position:absolute; width:100%; left:0;">
+                            <div class="p-5">
+                                <div class="row pb-3">
+                                    <div class="col-12 h-50">
+                                        <% if(feature){ %>
+                                            <% if(feature.logo != null && feature.logo.length != 0){ %>
+                                                <img class="logo_img" src="/images/<%= feature.logo.jpg %>">
+                                            <% } else {%>
+                                                <h1 class="display-1 featured-title"><%= feature.title %></h1>
+                                            <% } %>
+                                        <% } %>
+                                    </div>
+                                </div>
+                                <div class="row row-cols-2 text-nowrap">
+                                    <% var [type, id]=[feature.type, feature.id] %>
+                                    <% var watch_link=`/watch/${type}/${id}/` %>
+                                    <button class="btn btn-custom justify-content-center col-4 col-sm-3 col-md-2 col-lg-2 col-xl-2 col-xxl-1 me-2" onclick = "goto('<%= watch_link %>')"><i class="bi bi-play-circle"></i> Watch</button>
+                                    <button class="btn btn-secondary justify-content-center col-4 col-sm-3 col-md-2 col-lg-2 col-xl-2 col-xxl-1 me-2" onclick="show_media_modal('<%= type %>', '<%= id %>')"><i class="bi bi-info-circle"></i> Details</button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                    <img src="/images/<%= feature.backdrop %>" />
+                </div>
+            <% } %>
+
+        </div>
+
+        <% if(locals.recently_watched != null && recently_watched.length != 0){ %>
+            <div class="px-3">
+                <%- include("snippets/movie_row", {title: "Continue Watching", movies: recently_watched}) %>
+            </div>
+        <% } %>
+
+        <% if(locals.my_list != null && my_list.length != 0){ %>
+            <div class="my-list px-3">
+                <%- include("snippets/movie_row", {title: "My List", movies: my_list}) %>
+            </div>
+        <% } %>
+
+        <% let movies=locals.movies !=null ? locals.movies : {} %>
+        <% let movie_keys=Object.keys(movies); %>
+        <% movie_keys.sort() %>
+
+        <% for(let key of movie_keys){ %>
+            <% let movies_in_genre=movies[key] %>
+            <div class="px-3">
+                <%- include("snippets/movie_row", {title: key, movies: movies_in_genre}) %>
+            </div>
+        <% } %>
+</html>
